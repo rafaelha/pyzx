@@ -19,7 +19,7 @@ from typing import Optional, Tuple, Dict, Set, Any
 
 from .base import BaseGraph
 
-from ..utils import VertexType, EdgeType, FractionLike, FloatInt, vertex_is_zx_like, vertex_is_z_like, set_z_box_label, get_z_box_label
+from ..utils import VertexType, EdgeType, FractionLike, FloatInt, vertex_is_zx_like, vertex_is_z_like, set_z_box_label, get_z_box_label, phase_to_s
 
 class GraphS(BaseGraph[int,Tuple[int,int]]):
     """Purely Pythonic implementation of :class:`~graph.base.BaseGraph`."""
@@ -34,6 +34,7 @@ class GraphS(BaseGraph[int,Tuple[int,int]]):
         self.nedges: int                                = 0
         self.ty: Dict[int,VertexType]              = dict()
         self._phase: Dict[int, FractionLike]            = dict()
+        self._phaseVars: Dict[int, set[str]]             = dict()
         self._qindex: Dict[int, FloatInt]               = dict()
         self._maxq: FloatInt                            = -1
         self._rindex: Dict[int, FloatInt]               = dict()
@@ -53,6 +54,7 @@ class GraphS(BaseGraph[int,Tuple[int,int]]):
         cpy.nedges = self.nedges
         cpy.ty = self.ty.copy()
         cpy._phase = self._phase.copy()
+        cpy._phaseVars = self._phaseVars.copy()
         cpy._qindex = self._qindex.copy()
         cpy._maxq = self._maxq
         cpy._rindex = self._rindex.copy()
@@ -101,6 +103,7 @@ class GraphS(BaseGraph[int,Tuple[int,int]]):
             self.graph[i] = dict()
             self.ty[i] = VertexType.BOUNDARY
             self._phase[i] = 0
+            self._phaseVars[i] = set()
         self._vindex += amount
         return range(self._vindex - amount, self._vindex)
     def add_vertex_indexed(self, v):
@@ -323,17 +326,49 @@ class GraphS(BaseGraph[int,Tuple[int,int]]):
         return self._phase.get(vertex,Fraction(1))
     def phases(self):
         return self._phase
-    def set_phase(self, vertex, phase):
-        try:
-            self._phase[vertex] = phase % 2
-        except Exception:
-            self._phase[vertex] = phase
-    def add_to_phase(self, vertex, phase):
+
+    def get_all_params(self):
+        return self._phaseVars
+
+    def get_params(self, vertex):
+        return self._phaseVars[vertex]
+
+    def set_params(self, vertex, params):
+        self._phaseVars[vertex].clear()
+        self._phaseVars[vertex] = self._phaseVars[vertex].union(params)
+
+    def add_params(self, vertex, params):
+        self._phaseVars[vertex] = self._phaseVars[vertex].union(params)
+
+    def set_phase(self, vertex, phase, clearParams:Optional[bool]=True):
+        if (isinstance(phase, str)): # if symbolic
+            self._phaseVars[vertex].clear()
+            self._phase[vertex] = 0
+            self._phaseVars[vertex].add(phase)
+        else:
+            if (clearParams): self._phaseVars[vertex].clear()
+            try:
+                self._phase[vertex] = Fraction(phase) % 2
+            except Exception:
+                self._phase[vertex] = phase
+
+    def add_to_phase(self, vertex, phase, params: set[str] | None = None):
+        if params is None:
+            params = set()
+        self._phaseVars[vertex] = self._phaseVars[vertex].symmetric_difference(params) # XOR
         old_phase = self._phase.get(vertex, Fraction(1))
         try:
-            self._phase[vertex] = (old_phase + phase) % 2
+            self._phase[vertex] = (old_phase + Fraction(phase)) % 2
         except Exception:
             self._phase[vertex] = old_phase + phase
+
+    def toggle_var(self, vertex, strVar):
+        """Toggle a variable's coefficient"""
+        if (strVar in self._phaseVars[vertex]):
+            self._phaseVars[vertex].remove(strVar)
+        else:
+            self._phaseVars[vertex].add(strVar)
+
     def qubit(self, vertex):
         return self._qindex.get(vertex,-1)
     def qubits(self):
@@ -390,3 +425,23 @@ class GraphS(BaseGraph[int,Tuple[int,int]]):
             self._edata[edge][key] = val
         else:
             self._edata[edge] = {key: val}
+
+    # def get_phase_sym(self, vertex):
+    #     expr = 0 #float(self._phase[vertex]) * sym.Symbol("π")
+    #     for param in self._phaseVars[vertex]:
+    #         expr = expr + sym.Symbol(param)
+    #     return expr
+
+    def get_phase_str(self, vertex):
+        # strExprVars = str(self.get_phase_sym(vertex))
+        strExprVars = ""
+        for param in self._phaseVars[vertex]:
+            strExprVars += param + " + "
+        strExprVars = strExprVars[:-3]
+        strExprPlus = " + "
+        strExprConst = phase_to_s(self.phase(vertex), self.type(vertex))
+        if (strExprVars == "0"):
+            strExprVars = ""
+        if (strExprConst == "" or strExprVars == ""):
+            strExprPlus = ""
+        return strExprConst + strExprPlus + strExprVars

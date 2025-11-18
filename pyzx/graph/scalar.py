@@ -50,6 +50,15 @@ unicode_fractions = {
     Fraction(3,4): '¾',
 }
 
+class SpiderPair:
+    def __init__(self, alpha, beta, paramsA, paramsB):
+        self.alpha:   int      = alpha   # phase n of n*pi/4 (i.e. = 0,1,2,3,4,5,6,7) #TODO: Can change this to fraction if we want to support any alpha
+        self.beta:    int      = beta    # phase n of n*pi/4 (i.e. = 0,1,2,3,4,5,6,7)
+        self.paramsA: set[str] = paramsA # the set of XOR'd variables added to alpha
+        self.paramsB: set[str] = paramsB # the set of XOR'd variables added to beta
+        # gamma   = (alpha + beta) % 2
+        # paramsC = XOR(paramsA, paramsB)
+
 class Scalar(object):
     """Represents a global scalar for a Graph instance."""
     def __init__(self) -> None:
@@ -60,6 +69,12 @@ class Scalar(object):
         self.floatfactor: complex = 1.0
         self.is_unknown: bool = False # Whether this represents an unknown scalar value
         self.is_zero: bool = False
+
+        self.phasevars_pi: set[str] = set() # Stores the basic phase variable terms with pi coefficients (c=pi)
+        self.phasevars_pi_pair: list[list[set[str]]] = [] # Stores the AND-pair phase variable term pairs with pi coefficients (c=pi)
+        self.phasevars_halfpi: dict[int, list[set[str]]] = dict() # Stores the phase variable terms with +-pi/2 coeffs: c[terms[vars]], where c=1 or 3 (pi/2 or 3pi/2); These arise from lcomp's
+        self.phasepairs: list[SpiderPair] = [] # Stores list of spider-pairs
+        self.phasenodevars: list[set[str]] = [] # Stores the added parameters of the legless spider phases
 
     def __repr__(self) -> str:
         return "Scalar({})".format(str(self))
@@ -126,6 +141,32 @@ class Scalar(object):
             s.sum_of_phases = copy.deepcopy(self.sum_of_phases)
         else:
             s.sum_of_phases = {-phase: coeff for phase, coeff in self.sum_of_phases.items()}
+
+        s.phasevars_pi = copy.copy(self.phasevars_pi)
+        
+        #TEMP:
+        s.phasevars_pi_pair: list[list[set[str]]] = []
+        for i in self.phasevars_pi_pair:
+            psA = copy.copy(i[0])
+            psB = copy.copy(i[1])
+            s.phasevars_pi_pair.append([psA,psB])
+        
+        #TEMP:
+        s.phasevars_halfpi: dict[list[set[str]], int] = dict()
+        if 1 in self.phasevars_halfpi:
+            for i in self.phasevars_halfpi[1]:
+                if 1 not in s.phasevars_halfpi:
+                    s.phasevars_halfpi[1] = []
+                s.phasevars_halfpi[1].append(i)
+        if 3 in self.phasevars_halfpi:
+            for i in self.phasevars_halfpi[3]:
+                if 3 not in s.phasevars_halfpi:
+                    s.phasevars_halfpi[3] = []
+                s.phasevars_halfpi[3].append(i)
+        
+        s.phasepairs = copy.copy(self.phasepairs)
+        s.phasenodevars = copy.copy(self.phasenodevars)
+
         return s
 
     def conjugate(self) -> 'Scalar':
@@ -285,14 +326,40 @@ class Scalar(object):
         """Multiplies the scalar by a complex phase."""
         self.phase = (self.phase + phase) % 2
 
-    def add_node(self, node: FractionLike) -> None:
+    def add_phase_vars_halfpi(self, ps: set[str], c: int) -> None: # These terms arise from lcomp's
+        """Adds a term of XOR'd phase variables to the multiplier, for a +-pi/2 coefficient"""
+        if (len(ps)>0): # Don't bother adding empty sets (i.e. those with no parameters)
+            if c not in self.phasevars_halfpi:
+                self.phasevars_halfpi[c] = []
+            self.phasevars_halfpi[c].append(ps)
+
+    def add_phase_vars_pi(self, psA: set[str]) -> None:
+        """Adds XOR'd phase variables to the multiplier, for a pi coefficient"""
+        self.phasevars_pi = self.phasevars_pi.symmetric_difference(psA)
+
+    def add_phase_vars_pi_pair(self, psA: set[str], psB: set[str]) -> None:
+        """Adds a term of XOR'd phase variable set pairs to the multiplier, for a pi coefficient"""
+        self.phasevars_pi_pair.append([psA, psB])
+
+    def add_phase_pair(self, alpha: FractionLike, beta: FractionLike, paramsA: set[str], paramsB: set[str]) -> None:
+        """Add a new spider-pair scalar term"""
+        a = int(alpha*4) # Convert via alpha=a*pi/4
+        b = int(beta*4)  # Convert via  beta=b*pi/4
+        sp = SpiderPair(a, b, paramsA, paramsB)
+        self.phasepairs.append(sp)
+        
+    def add_node(self, node: FractionLike, node_params: set[str] | None = None) -> None:
         """A solitary spider with a phase ``node`` is converted into the
         scalar 1+e^(i*pi*node)."""
-        if node == 0:
+        if node_params is None:
+            node_params = set()
+        if (node == 0 and len(node_params) == 0):
             self.power2 += 2
         else:
             self.phasenodes.append(node)
-        if node == 1: self.is_zero = True
+            self.phasenodevars.append(node_params) # XOR
+        if (node == 1 and len(node_params) == 0):
+            self.is_zero = True
 
     def add_float(self,f: complex) -> None:
         if f == 0.0:
@@ -326,38 +393,11 @@ class Scalar(object):
         if other.is_zero: self.is_zero = True
         if other.is_unknown: self.is_unknown = True
 
-    def add_spider_pair(self, p1: FractionLike,p2: FractionLike) -> None:
+    def add_spider_pair(self, p1: FractionLike,p2: FractionLike, params1: set[str], params2: set[str]) -> None:
         """Add the scalar corresponding to a connected pair of spiders (p1)-H-(p2)."""
-        # These if statements look quite arbitrary, but they are just calculations of the scalar
-        # of a pair of connected single wire spiders of opposite colors.
-        # We make special cases for Clifford phases and pi/4 phases.
-        if phase_is_pauli(p2):
-            p1,p2 = p2, p1
-        if phase_is_pauli(p1):
-            self.add_power(1)
-            self.add_phase(p1 * p2)
-            return
-
-        if phase_is_clifford(p2):
-            p1, p2 = p2, p1
-        if phase_is_clifford(p1) and not phase_is_pauli(p1):
-            self.add_phase(Fraction(3,2) * p1 - Fraction(1,2))
-            self.add_node((p2-p1)%2)
-            return
-
-        if (p1 + p2) % 2 == 0 and not isinstance(p1, Poly) and not isinstance(p2, Poly):
-            if p1.denominator == 4:
-                if p1.numerator in (3,5):
-                    self.add_phase(Fraction(1))
-                return
-            self.add_power(1)
-            self.add_float(math.cos(p1))
-            return
-
-        # Generic case
+        # Generic case:
         self.add_power(-1)
-        # add the sum of phases 1 + e^(i pi p1) + e^(i pi p2) - e^(i pi (p1+p2))
-        self.multiply_sum_of_phases({0:1, p1:1, p2:1, (p1+p2)%2:-1})
+        self.add_phase_pair(p1,p2,params1,params2)
         return
 
 

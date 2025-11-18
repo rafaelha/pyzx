@@ -297,7 +297,7 @@ def calculate_path_sum(g: BaseGraph[VT,ET]) -> complex:
 def find_stabilizer_decomp(g: BaseGraph[VT,ET]) -> List[BaseGraph[VT,ET]]:
     if simplify.tcount(g) == 0: return [g]
     gsum = replace_magic_states(g, True)
-    gsum.reduce_scalar()
+    gsum.full_reduce() #gsum.reduce_scalar()
     output = []
     for h in gsum.graphs:
         if h.scalar.is_zero: continue

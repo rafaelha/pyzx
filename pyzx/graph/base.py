@@ -336,7 +336,8 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
                    row:FloatInt=-1,
                    phase:Optional[FractionLike]=None,
                    ground:bool=False,
-                   index: Optional[VT] = None
+                   index: Optional[VT] = None,
+                   phaseVars: Optional[set[str]]=None,
                    ) -> VT:
         """Add a single vertex to the graph and return its index.
         The optional parameters allow you to respectively set
@@ -354,6 +355,8 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
         self.set_row(v, row)
         if phase:
             self.set_phase(v, phase)
+        if (phaseVars is not None):
+            self.set_params(v, phaseVars)
         if ground:
             self.set_ground(v, True)
         if self.track_phases:
@@ -491,12 +494,13 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
         #g.add_vertices(self.num_vertices())
         ty = self.types()
         ph = self.phases()
+        pvs = self.get_all_params()
         qs = self.qubits()
         rs = self.rows()
         maxr = self.depth()
         vtab = dict()
         for v in self.vertices():
-            i = g.add_vertex(ty[v],phase=mult*ph[v])
+            i = g.add_vertex(ty[v],phase=mult*ph[v], phaseVars=pvs[v])
             if v in qs: g.set_qubit(i,qs[v])
             if v in rs:
                 if adjoint: g.set_row(i, maxr-rs[v])
@@ -583,7 +587,8 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
                         phase=other.phase(v),
                         qubit=other.qubit(v),
                         row=offset + other.row(v),
-                        ground=other.is_ground(v))
+                        ground=other.is_ground(v),
+                        phaseVars=other._phaseVars[v])
                 self.set_vdata_dict(w, other.vdata_dict(v))
                 vtab[v] = w
         for e in other.edges():
@@ -975,7 +980,7 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
                     raise TypeError("Diagram is not a well-typed ZX-diagram: contains isolated boundary vertex.")
                 elif ty == VertexType.H_BOX:
                     self.scalar.add_phase(self.phase(v))
-                else: self.scalar.add_node(self.phase(v))
+                else: self.scalar.add_node(self.phase(v), self.get_params(v))
             if d == 1: # It has a unique neighbor
                 if v in rem: continue # Already taken care of
                 if self.type(v) == VertexType.BOUNDARY: continue # Ignore in/outputs
@@ -991,15 +996,16 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
                 if t1 == VertexType.H_BOX: t1 = VertexType.Z # 1-ary H-box is just a Z spider
                 if t2 == VertexType.H_BOX: t2 = VertexType.Z
                 if t1==t2:
+                    params_vw = self._phaseVars[v].symmetric_difference(self._phaseVars[w]) # XOR
                     if et == EdgeType.SIMPLE:
-                        self.scalar.add_node(self.phase(v)+self.phase(w))
+                        self.scalar.add_node(self.phase(v)+self.phase(w), params_vw)
                     else:
-                        self.scalar.add_spider_pair(self.phase(v), self.phase(w))
+                        self.scalar.add_spider_pair(self.phase(v), self.phase(w), self.get_params(v), self.get_params(w))
                 else:
                     if et == EdgeType.SIMPLE:
-                        self.scalar.add_spider_pair(self.phase(v), self.phase(w))
+                        self.scalar.add_spider_pair(self.phase(v), self.phase(w), self.get_params(v), self.get_params(w))
                     else:
-                        self.scalar.add_node(self.phase(v)+self.phase(w))
+                        self.scalar.add_node(self.phase(v)+self.phase(w), params_vw)
         self.remove_vertices(rem)
 
     def vdata_dict(self, vertex: VT) -> Dict[str, Any]:

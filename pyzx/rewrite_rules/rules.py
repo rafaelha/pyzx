@@ -228,7 +228,7 @@ def spider(g: BaseGraph[VT,ET], matches: List[MatchSpiderType[VT]]) -> RewriteOu
             g.set_phase(v0, 0)
             set_z_box_label(g, v0, get_z_box_label(g, v0) * get_z_box_label(g, v1))
         else:
-            g.add_to_phase(v0, g.phase(v1))
+            g.add_to_phase(v0, g.phase(v1), g.get_params(v1))
 
         if g.track_phases:
             g.fuse_phases(v0,v1)
@@ -500,11 +500,14 @@ def match_pivot_gadget(
 
         v0a = phases[v0]
         v1a = phases[v1]
+        v0ps = g.get_params(v0)
+        v1ps = g.get_params(v1)
 
         if not phase_is_pauli(v0a):
             if phase_is_pauli(v1a):
                 v0, v1 = v1, v0
                 v0a, v1a = v1a, v0a
+                v0ps, v1ps = v1ps, v0ps
             else: continue
         elif phase_is_pauli(v1a): continue
         # Now v0 has a Pauli phase and v1 has a non-Pauli phase
@@ -534,7 +537,8 @@ def match_pivot_gadget(
         if any(types[w]!=VertexType.Z for w in v1n): continue
         # Both v0 and v1 are interior
 
-        v = g.add_vertex(VertexType.Z,-2,rs[v0],v1a)
+        v = g.add_vertex(VertexType.Z,-2,rs[v0],v1a)#,phaseVars=v1ps)
+        g.set_params(v, v1ps)
         g.set_phase(v1, 0)
         g.set_qubit(v0,-1)
         g.update_phase_index(v1,v)
@@ -660,6 +664,31 @@ def pivot(g: BaseGraph[VT,ET], matches: List[MatchPivotType[VT]]) -> RewriteOutp
             if not g.is_ground(v):
                 g.add_to_phase(v, 1)
 
+        # if g.phase(m[0]) and g.phase(m[1]): g.scalar.add_phase(Fraction(1))
+        #     if phases of m[0] and m[1] are both non-zero: add scalar phase of 1 (pi)...
+        if len(g.get_params(m[0][0])) == 0 and len(g.get_params(m[0][1])) == 0:
+            if g.phase(m[0][0]) and g.phase(m[0][1]): # no params and both non-zero
+                g.scalar.add_phase(Fraction(1))
+        elif (g.phase(m[0][0]) == 0 or g.phase(m[0][0]) == 1) and (g.phase(m[0][1]) == 0 or g.phase(m[0][1]) == 1): # one or more has params, and both have 0 or 1 const
+            psA = g.get_params(m[0][0])
+            psB = g.get_params(m[0][1])
+            if (g.phase(m[0][0]) == 1):
+                psA = psA.symmetric_difference({"1"})
+            if (g.phase(m[0][1]) == 1):
+                psB = psB.symmetric_difference({"1"})
+            g.scalar.add_phase_vars_pi_pair(psA,psB)
+        elif (g.phase(m[0][0]) == 0 or g.phase(m[0][0]) == 1) or (g.phase(m[0][1]) == 0 or g.phase(m[0][1]) == 1): # only one has a 0 or 1 const
+            if (g.phase(m[0][0] == 0)):
+                g.scalar.add_phase_vars_pi(g.get_params(m[0][0]))
+            elif (g.phase(m[0][0] == 1)):
+                g.scalar.add_phase_vars_pi(g.get_params(m[0][0]).symmetric_difference({"1"}))
+            if (g.phase(m[0][1] == 0)):
+                g.scalar.add_phase_vars_pi(g.get_params(m[0][1]))
+            elif (g.phase(m[0][1] == 1)):
+                g.scalar.add_phase_vars_pi(g.get_params(m[0][1]).symmetric_difference({"1"}))
+        else: # Neither has 0 or 1 const, hence both must be non-zero
+            g.scalar.add_phase(Fraction(1))
+
         #if g.phase(m[0][0]) and g.phase(m[0][1]): g.scalar.add_phase(Fraction(1))
         g.scalar.add_phase(Fraction(1) * g.phase(m[0][0]) * g.phase(m[0][1]))
         if not m[1][0] and not m[1][1]:
@@ -671,13 +700,14 @@ def pivot(g: BaseGraph[VT,ET], matches: List[MatchPivotType[VT]]) -> RewriteOutp
         for i in 0, 1:
             # if m[i] has a phase, it will get copied on to the neighbors of m[1-i]:
             a = g.phase(m[0][i])
-            if a:
-                for v in n[1-i]:
-                    if not g.is_ground(v):
-                        g.add_to_phase(v, a)
-                for v in n[2]:
-                    if not g.is_ground(v):
-                        g.add_to_phase(v, a)
+            ps = g.get_params(m[0][i])
+            #if a:
+            for v in n[1-i]:
+                if not g.is_ground(v):
+                    g.add_to_phase(v, a, ps)
+            for v in n[2]:
+                if not g.is_ground(v):
+                    g.add_to_phase(v, a, ps)
 
             if not m[1][i]:
                 # if there is no boundary, the other vertex is destroyed
@@ -754,26 +784,30 @@ def match_lcomp_parallel(
         m.append((v,vn))
     return m
 
-def lcomp(g: BaseGraph[VT,ET], matches: List[MatchLcompType[VT]]) -> RewriteOutputType[VT,ET]:
+def lcomp(g: BaseGraph[VT,ET], matches: List[MatchLcompType[VT]]) -> RewriteOutputType[ET,VT]:
     """Performs a local complementation based rewrite rule on the given graph with the
     given ``matches`` returned from ``match_lcomp(_parallel)``. See "Graph Theoretic
     Simplification of Quantum Circuits using the ZX calculus" (arXiv:1902.03178)
     for more details on the rewrite"""
-    etab: Dict[Tuple[VT,VT],List[int]] = dict()
-    rem: List[VT] = []
+    etab: Dict[ET,List[int]] = dict()
+    rem = []
     for m in matches:
         a = g.phase(m[0])
+        ps = g.get_params(m[0])
         rem.append(m[0])
-        #if pi/2, then scalar = pi/4
-        #if 3pi/2, then scalar = 7pi/4
-        g.scalar.add_phase(Fraction(3,2) * a - Fraction(1,2))
+        if a.numerator == 1: # if a = 1/2
+            g.scalar.add_phase(Fraction(1,4))
+            g.scalar.add_phase_vars_halfpi(ps, 3)    # Add (a+b+...)*(3/2)
+        else:                # if a = 3/2
+            g.scalar.add_phase(Fraction(7,4))
+            g.scalar.add_phase_vars_halfpi(ps, 1)    # Add (a+b+...)*(1/2)
         n = len(m[1])
         g.scalar.add_power((n-2)*(n-1)//2)
         for i in range(n):
             if not g.is_ground(m[1][i]):
-                g.add_to_phase(m[1][i], -a)
+                g.add_to_phase(m[1][i], -a, ps)
             for j in range(i+1, n):
-                e = (m[1][i],m[1][j])
+                e = g.edge(m[1][i],m[1][j])
                 he = etab.get(e, [0,0])[1]
                 etab[e] = [0, he+1]
 
@@ -810,7 +844,7 @@ def match_ids_parallel(
 
     while (num == -1 or i < num) and len(candidates) > 0:
         v = candidates.pop()
-        if phases[v] != 0 or not vertex_is_zx(types[v]) or g.is_ground(v) or g.vertex_degree(v) != 2:
+        if phases[v] != 0 or not vertex_is_zx(types[v]) or g.is_ground(v) or g.vertex_degree(v) != 2  or len(g.get_params(v)) > 0:
             continue
         if len(g.incident_edges(v)) != 2: continue
         neigh = g.neighbors(v)
@@ -971,6 +1005,8 @@ def match_phase_gadgets(g: BaseGraph[VT,ET],vertexf:Optional[Callable[[VT],bool]
             if not phase_is_pauli(phases[n]): continue # Not a real phase gadget (happens for scalar diagrams)
             if n in gadgets: continue # Not a real phase gadget (happens for scalar diagrams)
             if n in inputs or n in outputs: continue # Not a real phase gadget (happens for non-unitary diagrams)
+            if len(g.get_params(v)) > 0:
+                continue #TEMP?
             gadgets[n] = v
             par = frozenset(set(g.neighbors(n)).difference({v}))
             if par == frozenset(): continue # Not a real phase gadget if it acts on nothing
