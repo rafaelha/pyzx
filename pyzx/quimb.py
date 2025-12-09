@@ -81,7 +81,7 @@ def to_quimb_tensor(g: BaseGraph) -> "qtn.TensorNetwork": # type:ignore
     phase = g.scalar.phase
     if isinstance(phase, Poly):
         raise NotImplementedError("Quimb does not support symbolic phases")
-    scalar_float = np.exp(1j * np.pi * phase) * g.scalar.floatfactor
+    scalar_float = np.exp(1j * np.pi * phase) * g.scalar.floatfactor.to_complex()
     for node in g.scalar.phasenodes:    # Each node is a Fraction
         if isinstance(node, Poly):
             raise NotImplementedError("Quimb does not support symbolic phases")

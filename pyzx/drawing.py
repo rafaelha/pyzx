@@ -335,7 +335,7 @@ def graph_json(g: BaseGraph[VT, ET],
               'y': float(coords[v][1]),
               'z': float(coords[v][2]),
               't': g.type(v),
-              'phase': phase_to_s(g.phase(v), g.type(v), poly_with_pi=True) if g.type(v) != VertexType.Z_BOX else str(get_z_box_label(g, v)),
+              'phase': g.get_phase_str(v) if g.type(v) != VertexType.Z_BOX else str(get_z_box_label(g, v)),
               'ground': g.is_ground(v),
               'vdata': [(key, g.vdata(v, key))
                   for key in vdata or [] if g.vdata(v, key, None) is not None],
@@ -691,7 +691,7 @@ def matrix_to_latex(m: np.ndarray) -> str:
 
     epsilon = 10**-14
     best_val = None
-    denom = None
+    denom: Optional[int] = None
     for v in m.flat:
         if abs(v) > epsilon:
             if best_val is None: 
@@ -699,7 +699,7 @@ def matrix_to_latex(m: np.ndarray) -> str:
                 denom = Fraction(cmath.phase(v)/math.pi).limit_denominator(512).denominator
             else:
                 p = Fraction(cmath.phase(v)/math.pi).limit_denominator(512)
-                if p.denominator < denom:
+                if denom is None or p.denominator < denom:
                     best_val = v
                     denom = p.denominator
     if best_val is None:

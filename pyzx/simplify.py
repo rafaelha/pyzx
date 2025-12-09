@@ -232,7 +232,7 @@ def reduce_scalar(g: BaseGraph[VT,ET], quiet:bool=True, stats:Optional[Stats]=No
     return i
 
 
-def full_reduce(g: BaseGraph[VT,ET], matchf: Optional[Callable[[Union[VT, ET]],bool]]=None, quiet:bool=True, stats:Optional[Stats]=None) -> None:
+def full_reduce(g: BaseGraph[VT,ET], matchf: Optional[Callable[[Union[VT, ET]],bool]]=None, quiet:bool=True, stats:Optional[Stats]=None, paramSafe: Optional[bool]=False) -> None:
     """The main simplification routine of PyZX. It uses a combination of :func:`clifford_simp` and
     the gadgetization strategies :func:`pivot_gadget_simp` and :func:`gadget_simp`. It also attempts to run :func:`supplementarity_simp` and :func:`copy_simp`."""
     if any(g.types()[h] == VertexType.H_BOX for h in g.vertices()):
@@ -242,10 +242,12 @@ def full_reduce(g: BaseGraph[VT,ET], matchf: Optional[Callable[[Union[VT, ET]],b
     pivot_gadget_simp(g, matchf=matchf, quiet=quiet, stats=stats)
     while True:
         clifford_simp(g, matchf=matchf, quiet=quiet, stats=stats)
-        i = gadget_simp(g, matchf=matchf, quiet=quiet, stats=stats)
+        i, k, l = 0, 0, 0
+        if (not paramSafe): i = gadget_simp(g, matchf=matchf, quiet=quiet, stats=stats)
         interior_clifford_simp(g, matchf=matchf, quiet=quiet, stats=stats)
-        k = copy_simp(g, quiet=quiet, stats=stats)
-        l = supplementarity_simp(g,quiet=True, stats=stats)
+        if (not paramSafe):
+            k = copy_simp(g, quiet=quiet, stats=stats)
+            l = supplementarity_simp(g,quiet=True, stats=stats)
         j = pivot_gadget_simp(g, matchf=matchf, quiet=quiet, stats=stats)
         if i+j+k+l == 0:
             g.remove_isolated_vertices()
@@ -424,6 +426,16 @@ def tcount(g: Union[BaseGraph[VT,ET], Circuit]) -> int:
     phases = g.phases()
     for v in g.vertices():
         if not phase_is_clifford(phases[v]):
+            count += 1
+    return count
+
+
+def u3_count(g: BaseGraph[VT, ET]) -> int:
+    """Returns the amount of nodes in g that have a non-Clifford phase that is not a multiple of pi/4."""
+    count = 0
+    phases = g.phases()
+    for v in g.vertices():
+        if phases[v] != 0 and phases[v].denominator not in (1, 2, 4):
             count += 1
     return count
 

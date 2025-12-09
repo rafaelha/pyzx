@@ -32,15 +32,16 @@ from .utils import EdgeType, FractionLike, VertexType, toggle_vertex, toggle_edg
 from . import simplify
 from .circuit import Circuit
 from .graph.base import BaseGraph,VT,ET
+from .graph.scalar import DyadicNumber
 from .symbolic import Poly
 
-MAGIC_GLOBAL = -(7+5*sq2)/(2+2j)
-MAGIC_B60 = -16 + 12*sq2
-MAGIC_B66 = 96 - 68*sq2
-MAGIC_E6 = 10 - 7*sq2
-MAGIC_O6 = -14 + 10*sq2
-MAGIC_K6 = 7 - 5*sq2
-MAGIC_PHI = 10 - 7*sq2
+MAGIC_GLOBAL = DyadicNumber(k=2, a=-7, b=0, c=7, d=-10)
+MAGIC_B60 = DyadicNumber(k=-2, a=-4, b=3, c=0, d=3)
+MAGIC_B66 = DyadicNumber(k=-2, a=24, b=-17, c=0, d=-17)
+MAGIC_E6 = DyadicNumber(k=0, a=10, b=-7, c=0, d=-7)
+MAGIC_O6 = DyadicNumber(k=-1, a=-7, b=5, c=0, d=5)
+MAGIC_K6 = DyadicNumber(k=0, a=7, b=-5, c=0, d=-5)
+MAGIC_PHI = DyadicNumber(k=0, a=10, b=-7, c=0, d=-7)
 
 class SumGraph(object):
     """Container class for a sum of ZX-diagrams"""
@@ -296,7 +297,7 @@ def calculate_path_sum(g: BaseGraph[VT,ET]) -> complex:
 
 def find_stabilizer_decomp(g: BaseGraph[VT,ET]) -> List[BaseGraph[VT,ET]]:
     if simplify.tcount(g) == 0: return [g]
-    gsum = replace_magic_states(g, True)
+    gsum = replace_magic_states(g, False)
     gsum.reduce_scalar()
     output = []
     for h in gsum.graphs:
@@ -482,6 +483,32 @@ def replace_1_1(g: BaseGraph[VT,ET], verts: List[VT]) -> BaseGraph[VT,ET]:
     g.add_edge((verts[0],w),EdgeType.HADAMARD) 
     for v in verts: g.add_to_phase(v,Fraction(-1,4))
     return g
+
+
+def replace_1_0_arbitrary_rot(g: BaseGraph[VT,ET], verts: List[VT]) -> BaseGraph[VT,ET]:
+    g.scalar.add_power(-1)
+    phase = g.phase(verts[0])
+    w = g.add_vertex(VertexType.Z,g.qubit(verts[0])-0.5, g.row(verts[0])-0.5, 0)
+    g.add_edge((verts[0],w),EdgeType.HADAMARD)
+    for v in verts: g.add_to_phase(v,-phase)
+    return g
+
+def replace_1_1_arbitrary_rot(g: BaseGraph[VT,ET], verts: List[VT]) -> BaseGraph[VT,ET]:
+    phase = g.phase(verts[0])
+    g.scalar.add_phase(phase)
+    g.scalar.add_power(-1)
+    w = g.add_vertex(VertexType.Z,g.qubit(verts[0])-0.5, g.row(verts[0])-0.5, Fraction(1,1))
+    g.add_edge((verts[0],w),EdgeType.HADAMARD) 
+    for v in verts: g.add_to_phase(v,-phase)
+    return g
+
+def replace_u3_phases(g: BaseGraph[VT,ET]) -> SumGraph:
+    for v in g.vertices():
+        if g.phase(v).denominator not in (1, 2, 4):
+            g1 = replace_1_1_arbitrary_rot(g.copy(), [v])
+            g2 = replace_1_0_arbitrary_rot(g.copy(), [v])
+            return SumGraph([g1, g2])
+    return SumGraph([g])
 
 def cut_vertex(g,v):
     """Applies the ``cutting'' decomposition to a vertex, as used in, for example: https://arxiv.org/pdf/2403.10964."""

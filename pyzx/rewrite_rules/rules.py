@@ -226,7 +226,7 @@ def spider(g: BaseGraph[VT,ET], matches: List[MatchSpiderType[VT]]) -> RewriteOu
             g.set_phase(v0, 0)
             set_z_box_label(g, v0, get_z_box_label(g, v0) * get_z_box_label(g, v1))
         else:
-            g.add_to_phase(v0, g.phase(v1))
+            g.add_to_phase(v0, g.phase(v1), g.get_params(v1))
 
         if g.track_phases:
             g.fuse_phases(v0,v1)
@@ -498,11 +498,14 @@ def match_pivot_gadget(
 
         v0a = phases[v0]
         v1a = phases[v1]
+        v0ps = g.get_params(v0)
+        v1ps = g.get_params(v1)
 
         if v0a not in (0,1):
             if v1a in (0,1):
                 v0, v1 = v1, v0
                 v0a, v1a = v1a, v0a
+                v0ps, v1ps = v1ps, v0ps
             else: continue
         elif v1a in (0,1): continue
         # Now v0 has a Pauli phase and v1 has a non-Pauli phase
@@ -533,6 +536,7 @@ def match_pivot_gadget(
         # Both v0 and v1 are interior
 
         v = g.add_vertex(VertexType.Z,-2,rs[v0],v1a)
+        g.set_params(v, v1ps)
         g.set_phase(v1, 0)
         g.set_qubit(v0,-1)
         g.update_phase_index(v1,v)
@@ -658,7 +662,27 @@ def pivot(g: BaseGraph[VT,ET], matches: List[MatchPivotType[VT]]) -> RewriteOutp
             if not g.is_ground(v):
                 g.add_to_phase(v, 1)
 
-        if g.phase(m[0][0]) and g.phase(m[0][1]): g.scalar.add_phase(Fraction(1))
+        p0 = g.phase(m[0][0])
+        p1 = g.phase(m[0][1])
+        ps0 = g.get_params(m[0][0])
+        ps1 = g.get_params(m[0][1])
+        if len(ps0) == 0 and len(ps1) == 0:
+            if p0 and p1: # no params and both non-zero
+                g.scalar.add_phase(Fraction(1))
+        elif (p0 in (0, 1)) and (p1 in (0, 1)): # one or more has params, and both have 0 or 1 const
+            psA = ps0
+            psB = ps1
+            if (p0 == 1): psA = psA.symmetric_difference({"1"})
+            if (p1 == 1): psB = psB.symmetric_difference({"1"})
+            g.scalar.add_phase_vars_pi_pair(psA, psB)
+        elif (p0 in (0, 1)) or (p1 in (0, 1)): # only one has a 0 or 1 const
+            if (p0 == 0): g.scalar.add_phase_vars_pi(ps0)
+            elif (p0 == 1): g.scalar.add_phase_vars_pi(ps0.symmetric_difference({"1"}))
+            if (p1 == 0): g.scalar.add_phase_vars_pi(ps1)
+            elif (p1 == 1): g.scalar.add_phase_vars_pi(ps1.symmetric_difference({"1"}))
+        else: # Neither has 0 or 1 const, hence both must be non-zero
+            g.scalar.add_phase(Fraction(1))
+        
         if not m[1][0] and not m[1][1]:
             g.scalar.add_power(-(k0+k1+2*k2-1))
         elif not m[1][0]:
@@ -667,14 +691,14 @@ def pivot(g: BaseGraph[VT,ET], matches: List[MatchPivotType[VT]]) -> RewriteOutp
 
         for i in 0, 1:
             # if m[i] has a phase, it will get copied on to the neighbors of m[1-i]:
-            a = g.phase(m[0][i])
-            if a:
-                for v in n[1-i]:
-                    if not g.is_ground(v):
-                        g.add_to_phase(v, a)
-                for v in n[2]:
-                    if not g.is_ground(v):
-                        g.add_to_phase(v, a)
+            a = g.phase(m[0][i]) # type: ignore
+            ps = g.get_params(m[0][i])
+            for v in n[1-i]:
+                if not g.is_ground(v):
+                    g.add_to_phase(v, a, ps)
+            for v in n[2]:
+                if not g.is_ground(v):
+                    g.add_to_phase(v, a, ps)
 
             if not m[1][i]:
                 # if there is no boundary, the other vertex is destroyed
@@ -760,15 +784,20 @@ def lcomp(g: BaseGraph[VT,ET], matches: List[MatchLcompType[VT]]) -> RewriteOutp
     rem: List[VT] = []
     for m in matches:
         a = g.phase(m[0])
+        ps = g.get_params(m[0])
         rem.append(m[0])
         assert isinstance(a,Fraction)  # For mypy
-        if a.numerator == 1: g.scalar.add_phase(Fraction(1,4))
-        else: g.scalar.add_phase(Fraction(7,4))
+        if a.numerator == 1: # if a = 1/2
+            g.scalar.add_phase(Fraction(1,4))
+            g.scalar.add_phase_vars_halfpi(ps, 3)    # Add (a+b+...)*(3/2)
+        else:                # if a = 3/2
+            g.scalar.add_phase(Fraction(7,4))
+            g.scalar.add_phase_vars_halfpi(ps, 1)    # Add (a+b+...)*(1/2)
         n = len(m[1])
         g.scalar.add_power((n-2)*(n-1)//2)
         for i in range(n):
             if not g.is_ground(m[1][i]):
-                g.add_to_phase(m[1][i], -a)
+                g.add_to_phase(m[1][i], -a, ps)
             for j in range(i+1, n):
                 e = (m[1][i],m[1][j])
                 he = etab.get(e, [0,0])[1]
@@ -807,7 +836,7 @@ def match_ids_parallel(
 
     while (num == -1 or i < num) and len(candidates) > 0:
         v = candidates.pop()
-        if phases[v] != 0 or not vertex_is_zx(types[v]) or g.is_ground(v) or g.vertex_degree(v) != 2:
+        if phases[v] != 0 or not vertex_is_zx(types[v]) or g.is_ground(v) or g.vertex_degree(v) != 2 or len(g.get_params(v)) > 0:
             continue
         if len(g.incident_edges(v)) != 2: continue
         neigh = g.neighbors(v)
@@ -968,6 +997,7 @@ def match_phase_gadgets(g: BaseGraph[VT,ET],vertexf:Optional[Callable[[VT],bool]
             if phases[n] not in (0,1): continue # Not a real phase gadget (happens for scalar diagrams)
             if n in gadgets: continue # Not a real phase gadget (happens for scalar diagrams)
             if n in inputs or n in outputs: continue # Not a real phase gadget (happens for non-unitary diagrams)
+            if len(g.get_params(v)) > 0: continue # Not supported for symbolic params
             gadgets[n] = v
             par = frozenset(set(g.neighbors(n)).difference({v}))
             if par == frozenset(): continue # Not a real phase gadget if it acts on nothing

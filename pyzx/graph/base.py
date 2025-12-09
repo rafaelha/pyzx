@@ -19,11 +19,11 @@ import math
 from fractions import Fraction
 from typing import TYPE_CHECKING, Union, Optional, Generic, TypeVar, Any, Sequence
 from typing import List, Dict, Set, Tuple, Mapping, Iterable, Callable, ClassVar, Literal
-from typing_extensions import Literal, GenericMeta # type: ignore # https://github.com/python/mypy/issues/5753
+from typing_extensions import Literal, GenericMeta  # type: ignore # https://github.com/python/mypy/issues/5753
 
 import numpy as np
 
-from ..utils import EdgeType, VertexType, toggle_edge, vertex_is_zx
+from ..utils import EdgeType, VertexType, toggle_edge, vertex_is_zx, phase_to_s
 from ..utils import FloatInt, FractionLike
 from ..tensor import tensorfy, tensor_to_matrix
 
@@ -85,6 +85,9 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
 
     def __init__(self) -> None:
         self.scalar: Scalar = Scalar()
+        # Default storage for symbolic phases; backends can override these in their own __init__.
+        self._phase: Dict[VT, FractionLike] = dict()
+        self._phaseVars: Dict[VT, Set[str]] = dict()
         # self.inputs: List[VT] = []
         # self.outputs: List[VT] = []
         #Data necessary for phase tracking for phase teleportation
@@ -333,7 +336,8 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
                    row:FloatInt=-1,
                    phase:Optional[FractionLike]=None,
                    ground:bool=False,
-                   index: Optional[VT] = None
+                   index: Optional[VT] = None,
+                   phaseVars: Optional[Set[str]] = None
                    ) -> VT:
         """Add a single vertex to the graph and return its index.
         The optional parameters allow you to respectively set
@@ -351,6 +355,8 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
         self.set_row(v, row)
         if phase:
             self.set_phase(v, phase)
+        if phaseVars is not None:
+            self.set_params(v, phaseVars)
         if ground:
             self.set_ground(v, True)
         if self.track_phases:
@@ -372,9 +378,33 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
         """Removes the given edge from the graph."""
         self.remove_edges([edge])
 
-    def add_to_phase(self, vertex: VT, phase: FractionLike) -> None:
-        """Add the given phase to the phase value of the given vertex."""
-        self.set_phase(vertex,self.phase(vertex)+phase)
+    def get_all_params(self) -> Mapping[VT, Set[str]]:
+        """Returns a mapping of vertices to their symbolic phase parameters."""
+        return self._phaseVars
+
+    def get_params(self, vertex: VT) -> Set[str]:
+        """Returns the symbolic parameters attached to the given vertex."""
+        return self._phaseVars.get(vertex, set())
+
+    def set_params(self, vertex: VT, params: Set[str]) -> None:
+        """Sets the symbolic parameters attached to the given vertex."""
+        self._phaseVars[vertex] = set(params)
+
+    def add_params(self, vertex: VT, params: Set[str]) -> None:
+        """Adds (XORs) the given symbolic parameters to the vertex."""
+        current = self._phaseVars.get(vertex, set())
+        self._phaseVars[vertex] = current.union(params)
+
+    def add_to_phase(self, vertex: VT, phase: FractionLike, params: Optional[Set[str]] = None) -> None:
+        """Add the given phase and optional symbolic params to the given vertex."""
+        params = params or set()
+        if params:
+            self.add_params(vertex, params)
+        self.set_phase(vertex, self.phase(vertex)+phase)
+
+    def get_phase_str(self, vertex: VT) -> str:
+        """Human readable representation of the phase and params of a vertex."""
+        return phase_to_s(self.phase(vertex), self.type(vertex))
 
     def num_inputs(self) -> int:
         """Gets the number of inputs of the graph."""
@@ -486,12 +516,14 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
         #g.add_vertices(self.num_vertices())
         ty = self.types()
         ph = self.phases()
+        pvs = self.get_all_params() if hasattr(self, "get_all_params") else {}
         qs = self.qubits()
         rs = self.rows()
         maxr = self.depth()
         vtab = dict()
         for v in self.vertices():
-            i = g.add_vertex(ty[v],phase=mult*ph[v])
+            pv = pvs[v] if v in pvs else set()
+            i = g.add_vertex(ty[v], phase=mult * ph[v], phaseVars=pv)
             if v in qs: g.set_qubit(i,qs[v])
             if v in rs:
                 if adjoint: g.set_row(i, maxr-rs[v])
@@ -577,6 +609,7 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
                         row=offset + other.row(v),
                         ground=other.is_ground(v))
                 self.set_vdata_dict(w, other.vdata_dict(v))
+                self.set_params(w, other.get_params(v))
                 vtab[v] = w
         for e in other.edges():
             s,t = other.edge_st(e)
@@ -650,11 +683,12 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
         qs = other.qubits()
         phase = other.phases()
         grounds = other.grounds()
+        phasevars = other.get_all_params()
 
         vert_map = dict()
         edges = []
         for v in other.vertices():
-            w = self.add_vertex(ty[v],qs[v],rs[v],phase[v],v in grounds)
+            w = self.add_vertex(ty[v], qs[v], rs[v], phase[v], v in grounds, phaseVars=phasevars.get(v, set()))
             self.set_vdata_dict(w, other.vdata_dict(v))
             vert_map[v] = w
         for e in other.edges():
@@ -678,13 +712,14 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
         qs = self.qubits()
         phase = self.phases()
         grounds = self.grounds()
+        phasevars = self.get_all_params()
 
         edges = [e for e in self.edges() \
             if self.edge_st(e)[0] in verts and self.edge_st(e)[1] in verts]
 
         vert_map = dict()
         for v in verts:
-            w = g.add_vertex(ty[v], qs[v], rs[v], phase[v], v in grounds, index=v)
+            w = g.add_vertex(ty[v], qs[v], rs[v], phase[v], v in grounds, index=v, phaseVars=phasevars.get(v, set()))
             vert_map[v] = w
             g.set_vdata_dict(w, self.vdata_dict(v))
         for e in edges:
@@ -966,7 +1001,7 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
                     raise TypeError("Diagram is not a well-typed ZX-diagram: contains isolated boundary vertex.")
                 elif ty == VertexType.H_BOX:
                     self.scalar.add_phase(self.phase(v))
-                else: self.scalar.add_node(self.phase(v))
+                else: self.scalar.add_node(self.phase(v), self.get_params(v))
             if d == 1: # It has a unique neighbor
                 if v in rem: continue # Already taken care of
                 if self.type(v) == VertexType.BOUNDARY: continue # Ignore in/outputs
@@ -979,18 +1014,19 @@ class BaseGraph(Generic[VT, ET], metaclass=DocstringMeta):
                 et = self.edge_type(self.edge(v,w))
                 t1 = self.type(v)
                 t2 = self.type(w)
+                params_vw = self.get_params(v).symmetric_difference(self.get_params(w))
                 if t1 == VertexType.H_BOX: t1 = VertexType.Z # 1-ary H-box is just a Z spider
                 if t2 == VertexType.H_BOX: t2 = VertexType.Z
                 if t1==t2:
                     if et == EdgeType.SIMPLE:
-                        self.scalar.add_node(self.phase(v)+self.phase(w))
+                        self.scalar.add_node(self.phase(v)+self.phase(w), params_vw)
                     else:
-                        self.scalar.add_spider_pair(self.phase(v), self.phase(w))
+                        self.scalar.add_spider_pair(self.phase(v), self.phase(w), self.get_params(v), self.get_params(w))
                 else:
                     if et == EdgeType.SIMPLE:
-                        self.scalar.add_spider_pair(self.phase(v), self.phase(w))
+                        self.scalar.add_spider_pair(self.phase(v), self.phase(w), self.get_params(v), self.get_params(w))
                     else:
-                        self.scalar.add_node(self.phase(v)+self.phase(w))
+                        self.scalar.add_node(self.phase(v)+self.phase(w), params_vw)
         self.remove_vertices(rem)
 
     def vdata_dict(self, vertex: VT) -> Dict[str, Any]:

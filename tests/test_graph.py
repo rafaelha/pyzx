@@ -30,7 +30,7 @@ from pyzx.generate import identity
 
 import numpy as np
 from pyzx.tensor import compare_tensors
-from pyzx.graph.scalar import Scalar
+from pyzx.graph.scalar import DyadicNumber, Scalar
 
 
 
@@ -163,7 +163,7 @@ class TestGraphBasicMethods(unittest.TestCase):
         scalar = Scalar()
         scalar.phase = Fraction(1, 4)
         scalar.phasenodes = [Fraction(1, 2), Fraction(1, 4)]
-        scalar.floatfactor = 1.3 + 0.1*1j
+        scalar.floatfactor = DyadicNumber(1, 3, 3, 1, 5)
         scalar.power2 = 2
         g.scalar = scalar
         g_adj = g.adjoint()
