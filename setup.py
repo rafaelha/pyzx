@@ -40,7 +40,6 @@ setup(
                       "numpy>=1.14",
                       "pyperclip>=1.8.1",
                       "tqdm>=4.56.0",
-                      "ipywidgets>=7.5",
                       "lark>=1.2.2"],
     include_package_data=True,
 )
