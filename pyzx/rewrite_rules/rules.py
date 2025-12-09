@@ -102,9 +102,10 @@ def match_bialg_parallel(
        tries to find as many as possible.
     :rtype: List of 4-tuples ``(v1, v2, neighbors_of_v1,neighbors_of_v2)``
     """
-    if matchf is not None: candidates_set = set([e for e in g.edges() if matchf(e)])
-    else: candidates_set = g.edge_set()
-    candidates = list(Counter(candidates_set).elements())
+    if matchf is not None:
+        candidates = set([e for e in g.edges() if matchf(e)])
+    else:
+        candidates = set(g.edge_set())
     phases = g.phases()
     types = g.types()
 
@@ -132,7 +133,7 @@ def match_bialg_parallel(
                     for v in vn:
                         for c in g.incident_edges(v):
                             if c in candidates:
-                                candidates.remove(c)
+                                candidates.discard(c)
                 m.append((v0,v1,v0n,v1n))
     return m
 
@@ -411,9 +412,10 @@ def match_pivot_parallel(
        consider all edges.
     :rtype: List of 4-tuples. See :func:`pivot` for the details.
     """
-    if matchf is not None: candidates_set = set([e for e in g.edges() if matchf(e)])
-    else: candidates_set = g.edge_set()
-    candidates = list(Counter(candidates_set).elements())
+    if matchf is not None:
+        candidates = set([e for e in g.edges() if matchf(e)])
+    else:
+        candidates = set(g.edge_set())
     types = g.types()
     phases = g.phases()
 
@@ -467,7 +469,7 @@ def match_pivot_parallel(
             for v in vn:
                 for c in g.incident_edges(v):
                     if c in candidates:
-                        candidates.remove(c)
+                        candidates.discard(c)
         b0 = list(v0b)
         b1 = list(v1b)
         m.append(((v0,v1),(b0,b1)))
@@ -480,9 +482,10 @@ def match_pivot_gadget(
     """Like :func:`match_pivot_parallel`, but except for pairings of
     Pauli vertices, it looks for a pair of an interior Pauli vertex and an
     interior non-Clifford vertex in order to gadgetize the non-Clifford vertex."""
-    if matchf is not None: candidates_set = set([e for e in g.edges() if matchf(e)])
-    else: candidates_set = g.edge_set()
-    candidates = list(Counter(candidates_set).elements())
+    if matchf is not None:
+        candidates = set([e for e in g.edges() if matchf(e)])
+    else:
+        candidates = set(g.edge_set())
     types = g.types()
     phases = g.phases()
     rs = g.rows()
