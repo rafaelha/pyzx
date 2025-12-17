@@ -24,12 +24,13 @@ if __name__ == '__main__':
     sys.path.append('..')
     sys.path.append('.')
 from pyzx.circuit import Circuit
-from pyzx.graph import Graph, EdgeType, Scalar
+from pyzx.graph import Graph, EdgeType, Scalar, VertexType
 from pyzx.simulate import (
     replace_magic_states,
     cut_vertex,
     cut_edge,
-    gen_catlike_term
+    gen_catlike_term,
+    replace_u3_states
 )
 from pyzx.generate import cliffords
 from pyzx.simplify import full_reduce
@@ -116,6 +117,59 @@ class TestSimulate(unittest.TestCase):
 
         # Check if the scalar from generated term is correct
         self.assertTrue(G.scalar.to_number() == s.to_number())
+
+    def test_replace_arbitrary_rotation(self):
+        theta = Fraction(1, 7)
+        g = Graph()
+        v0 = g.add_vertex(VertexType.Z, qubit=0, row=0, phase=theta)
+        o1 = g.add_vertex(VertexType.BOUNDARY, qubit=0, row=1)
+        g.add_edge((o1, v0), EdgeType.HADAMARD)
+
+        g.set_outputs((o1,))
+        t1 = g.to_tensor()
+
+        gsum = replace_u3_states(g)
+        assert len(gsum.graphs) == 2
+        t2 = sum([g_.to_tensor() for g_ in gsum.graphs])
+
+        self.assertTrue(np.allclose(t1, t2))
+
+
+    def test_replace_rotation_pair(self):
+        theta = Fraction(1, 7)
+        g = Graph()
+        v0 = g.add_vertex(VertexType.Z, qubit=0, row=0, phase=theta)
+        v1 = g.add_vertex(VertexType.Z, qubit=1, row=0, phase=-theta)
+        o1 = g.add_vertex(VertexType.BOUNDARY, qubit=0, row=1)
+        o2 = g.add_vertex(VertexType.BOUNDARY, qubit=1, row=1)
+        g.add_edge((o1, v0), EdgeType.HADAMARD)
+        g.add_edge((o2, v1), EdgeType.HADAMARD)
+
+        g.set_outputs((o1, o2))
+        t1 = g.to_tensor()
+
+        gsum = replace_u3_states(g)
+        self.assertTrue(len(gsum.graphs) == 3)
+        t2 = sum([g_.to_tensor() for g_ in gsum.graphs])
+
+        self.assertTrue(np.allclose(t1, t2))
+
+
+    def test_magic_theta_cat_replace(self):
+        theta = Fraction(1, 7)
+        g = Graph()
+        vo = [g.add_vertex(VertexType.BOUNDARY, qubit=i, row=1) for i in range(5)]
+        vs = [g.add_vertex(VertexType.Z, qubit=i, row=0, phase=theta) for i in range(5)]
+        [g.add_edge((a, b)) for a, b in zip(vo, vs)]
+        g.set_outputs(tuple(vo))
+
+        t1 = g.to_tensor()
+
+        gsum = replace_u3_states(g)
+        self.assertTrue(len(gsum.graphs) == 4)
+        t2 = sum([g_.to_tensor() for g_ in gsum.graphs])
+
+        self.assertTrue(np.allclose(t1, t2))
 
 
 if __name__ == '__main__':
