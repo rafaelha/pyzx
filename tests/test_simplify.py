@@ -21,7 +21,7 @@ import sys
 from types import ModuleType
 from typing import Optional
 
-from pyzx import VertexType
+from pyzx import VertexType, EdgeType
 
 if __name__ == '__main__':
     sys.path.append('..')
@@ -204,6 +204,20 @@ class TestSimplify(unittest.TestCase):
 
         self.assertTrue(g.num_vertices() == g1.num_vertices())
         self.assertTrue(compare_tensors(g1.to_tensor(),g.to_tensor()))
+
+    def test_copy_simp_with_interacting_matches(self):
+        g = Graph()
+        v0 = g.add_vertex(VertexType.Z, 0, 0)
+        v1 = g.add_vertex(VertexType.Z, 0, 1, Fraction(1, 1))
+        v2 = g.add_vertex(VertexType.Z, 0, 2, Fraction(1, 1))
+        v3 = g.add_vertex(VertexType.Z, 0, 3)
+
+        g.add_edges([(v0, v1), (v1, v2), (v2, v3)], edgetype=EdgeType.HADAMARD)
+
+        t1 = g.to_tensor()
+        copy_simp(g)
+        t2 = g.to_tensor()
+        self.assertTrue(np.allclose(t1, t2))
 
 
 

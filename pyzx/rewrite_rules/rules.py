@@ -1154,6 +1154,13 @@ def apply_copy(g: BaseGraph[VT,ET], matches: List[MatchCopyType[VT]]) -> Rewrite
     types = g.types()
     outputs = g.outputs()
     for v,w,a,alpha, neigh in matches:
+        assert len(g.neighbors(v)) == 1
+        assert g.phase(v) in (0,1)
+        w = list(g.neighbors(v))[0]
+        neigh = [n for n in g.neighbors(w) if n != v]
+        a = g.phase(v)
+        alpha = g.phase(w)
+
         rem.append(v)
         rem.append(w)
         g.scalar.add_power(-len(neigh)+1)
@@ -1167,7 +1174,10 @@ def apply_copy(g: BaseGraph[VT,ET], matches: List[MatchCopyType[VT]]) -> Rewrite
                 g.add_edge((n,u), toggle_edge(et))
             else:
                 g.add_to_phase(n, a)
-    return ({}, rem, [], True)
+        g.remove_vertices(rem)
+        rem = []
+    # return ({}, rem, [], True)
+    return ({}, [], [], True)
 
 MatchPhasePolyType = Tuple[List[VT], Dict[FrozenSet[VT],Union[VT,Tuple[VT,VT]]]]
 
