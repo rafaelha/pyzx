@@ -332,6 +332,7 @@ class Scalar(object):
         if (node == 0 and len(node_params) == 0):
             self.power2 += 2
         else:
+            assert node.denominator in [1,2,4]
             self.phasenodes.append(node)
             self.phasenodevars.append(node_params) # XOR
         if (node == 1 and len(node_params) == 0): self.is_zero = True

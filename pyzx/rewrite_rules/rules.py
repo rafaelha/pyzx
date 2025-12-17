@@ -1061,6 +1061,9 @@ def match_supplementarity(g: BaseGraph[VT,ET], vertexf:Optional[Callable[[VT],bo
     while len(candidates) > 0:
         v = candidates.pop()
         if phases[v] == 0 or (not isinstance(phases[v], Poly) and phases[v].denominator <= 2): continue # Skip Clifford vertices
+        if phases[v].denominator not in [1,2,4]:
+            # Skip non-Clifford+T vertices
+            continue
         neigh = set(g.neighbors(v))
         if not neigh.isdisjoint(taken): continue
         par = frozenset(neigh)
