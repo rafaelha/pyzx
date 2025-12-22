@@ -419,6 +419,8 @@ class Scalar(object):
         self.phasevars_pi = self.phasevars_pi.symmetric_difference(psA)
     def add_phase_vars_pi_pair(self, psA:Set[str], psB:Set[str]) -> None:
         """Adds a term of XOR'd phase variable set pairs to the multiplier, for a pi coefficient"""
+        if len(psA) == 0 or len(psB) == 0:
+            return
         self.phasevars_pi_pair.append([psA, psB])
     def add_phase_pair(self, alpha: FractionLike, beta: FractionLike, paramsA: Set[str], paramsB: Set[str]) -> None:
         """Add a new spider-pair scalar term"""
