@@ -7,11 +7,11 @@ HERE = pathlib.Path(__file__).parent
 README = (HERE / "readme.md").read_text()
 
 setup(
-    name="pyzx",
+    name="pyzx-param",
     author="Quantomatic",
     author_email="john@vdwetering.name",
     version="0.9.0",
-    url="https://github.com/zxcalc/pyzx.git",
+    url="https://github.com/zxcalc/pyzx.git",  # TODO: Update to your fork's URL
     description="Library for quantum circuit rewriting and optimisation using the ZX-calculus",
     long_description=README,
     long_description_content_type="text/markdown",
