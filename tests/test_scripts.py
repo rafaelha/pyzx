@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
 import io
 
-from pyzx.scripts import main
+from pyzx_param.scripts import main
 
 
 class TestScripts(unittest.TestCase):

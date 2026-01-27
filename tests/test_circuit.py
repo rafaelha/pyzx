@@ -26,15 +26,15 @@ if __name__ == '__main__':
     sys.path.append('..')
     sys.path.append('.')
 mydir = os.path.dirname(__file__)
-from pyzx.generate import cliffordT, cliffords
-from pyzx.simplify import clifford_simp
-from pyzx.extract import extract_circuit
-from pyzx.circuit import Circuit
+from pyzx_param.generate import cliffordT, cliffords
+from pyzx_param.simplify import clifford_simp
+from pyzx_param.extract import extract_circuit
+from pyzx_param.circuit import Circuit
 
 np: Optional[ModuleType]
 try:
     import numpy as np
-    from pyzx.tensor import tensorfy, compare_tensors
+    from pyzx_param.tensor import tensorfy, compare_tensors
     import math
 except ImportError:
     np = None

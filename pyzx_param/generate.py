@@ -34,11 +34,11 @@ from typing import Optional, List, Set, Union
 from typing_extensions import Literal
 
 import numpy as np
-from pyzx.circuit.gates import CNOT, ZPhase
-from pyzx.linalg import Mat2, MatLike
+from pyzx_param.circuit.gates import CNOT, ZPhase
+from pyzx_param.linalg import Mat2, MatLike
 
-from pyzx.routing.parity_maps import CNOT_tracker, Parity
-from pyzx.routing.phase_poly import PhasePoly, mat22partition
+from pyzx_param.routing.parity_maps import CNOT_tracker, Parity
+from pyzx_param.routing.phase_poly import PhasePoly, mat22partition
 
 from .utils import EdgeType, VertexType, FloatInt, FractionLike, vertex_is_w, set_z_box_label
 from .graph import Graph

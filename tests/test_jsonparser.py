@@ -23,8 +23,8 @@ if __name__ == '__main__':
     sys.path.append('..')
     sys.path.append('.')
 
-from pyzx.graph import Graph
-from pyzx.utils import EdgeType, VertexType
+from pyzx_param.graph import Graph
+from pyzx_param.utils import EdgeType, VertexType
 
 
 # A graph in the old format (a Quantomatic .qgraph file)

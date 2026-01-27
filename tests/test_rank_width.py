@@ -25,8 +25,8 @@ if __name__ == '__main__':
     sys.path.append('..')
     sys.path.append('.')
 
-import pyzx as zx
-from pyzx.rank_width import tensorfy_rw, conv_uv, conv_vw, conv_naive
+import pyzx_param as zx
+from pyzx_param.rank_width import tensorfy_rw, conv_uv, conv_vw, conv_naive
 
 
 class TestRankWidth(unittest.TestCase):

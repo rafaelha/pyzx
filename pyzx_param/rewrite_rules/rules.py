@@ -56,11 +56,11 @@ import itertools
 
 import numpy as np
 
-from pyzx.graph.multigraph import Multigraph
+from pyzx_param.graph.multigraph import Multigraph
 
-from pyzx.utils import VertexType, EdgeType, get_w_partner, get_z_box_label, set_z_box_label, toggle_edge, vertex_is_w, vertex_is_zx, vertex_is_zx_like, FloatInt, FractionLike, get_w_io, vertex_is_z_like
-from pyzx.graph.base import BaseGraph, VT, ET
-from pyzx.symbolic import Poly
+from pyzx_param.utils import VertexType, EdgeType, get_w_partner, get_z_box_label, set_z_box_label, toggle_edge, vertex_is_w, vertex_is_zx, vertex_is_zx_like, FloatInt, FractionLike, get_w_io, vertex_is_z_like
+from pyzx_param.graph.base import BaseGraph, VT, ET
+from pyzx_param.symbolic import Poly
 
 RewriteOutputType = Tuple[Dict[Tuple[VT,VT],List[int]], List[VT], List[ET], bool]
 MatchObject = TypeVar('MatchObject')

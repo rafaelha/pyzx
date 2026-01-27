@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pyzx.graph.multigraph import Edge
+from pyzx_param.graph.multigraph import Edge
 from .utils import EdgeType, VertexType
 from .graph.base import BaseGraph, VT, ET
 from itertools import combinations

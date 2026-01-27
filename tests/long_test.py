@@ -21,12 +21,12 @@ if __name__ == '__main__':
     sys.path.append('..')
     sys.path.append('.')
 
-from pyzx.tensor import compare_tensors
-from pyzx.generate import cliffordT
-from pyzx.simplify import *
-from pyzx.extract import extract_circuit
-from pyzx.circuit import Circuit
-from pyzx.optimize import *
+from pyzx_param.tensor import compare_tensors
+from pyzx_param.generate import cliffordT
+from pyzx_param.simplify import *
+from pyzx_param.extract import extract_circuit
+from pyzx_param.circuit import Circuit
+from pyzx_param.optimize import *
 
 SEED = 1337
 random.seed(SEED)

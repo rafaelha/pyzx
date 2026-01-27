@@ -22,10 +22,10 @@ NEW VERSION
 from fractions import Fraction
 from itertools import combinations
 from typing import Dict, List, Tuple, Callable, Optional, Set, FrozenSet
-from pyzx.utils import EdgeType, VertexType, toggle_edge, toggle_vertex, FractionLike, FloatInt, vertex_is_zx
-from pyzx.simplify import *
-from pyzx.graph.base import BaseGraph, ET, VT, upair
-import pyzx.rewrite_rules.rules as rules
+from pyzx_param.utils import EdgeType, VertexType, toggle_edge, toggle_vertex, FractionLike, FloatInt, vertex_is_zx
+from pyzx_param.simplify import *
+from pyzx_param.graph.base import BaseGraph, ET, VT, upair
+import pyzx_param.rewrite_rules.rules as rules
 
 def is_hadamard(g: BaseGraph[VT,ET], v: VT) -> bool:
     """Returns whether the vertex v in graph g is a Hadamard gate."""

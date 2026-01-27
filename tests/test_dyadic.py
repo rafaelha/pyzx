@@ -7,8 +7,8 @@ if __name__ == '__main__':
     sys.path.append('..')
     sys.path.append('.')
 
-from pyzx.graph.scalar import DyadicNumber
-from pyzx.simulate import MAGIC_GLOBAL, MAGIC_B60, MAGIC_B66, MAGIC_E6, MAGIC_O6, MAGIC_K6, MAGIC_PHI
+from pyzx_param.graph.scalar import DyadicNumber
+from pyzx_param.simulate import MAGIC_GLOBAL, MAGIC_B60, MAGIC_B66, MAGIC_E6, MAGIC_O6, MAGIC_K6, MAGIC_PHI
 
 
 def test_mul():

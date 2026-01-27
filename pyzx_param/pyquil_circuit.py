@@ -22,8 +22,8 @@ from pyquil.parser import parse as parse_quil
 from pyquil.quilbase import Pragma, Gate
 from numpy import pi
 
-from pyzx.routing.parity_maps import CNOT_tracker
-from pyzx.circuit import Circuit
+from pyzx_param.routing.parity_maps import CNOT_tracker
+from pyzx_param.circuit import Circuit
 
 class PyQuilCircuit(CNOT_tracker):
 

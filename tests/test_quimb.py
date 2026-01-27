@@ -23,15 +23,15 @@ from typing import Optional
 if __name__ == '__main__':
     sys.path.append('..')
     sys.path.append('.')
-from pyzx.graph import Graph
-from pyzx.utils import EdgeType, VertexType
-from pyzx.quimb import to_quimb_tensor
-from pyzx.simplify import full_reduce
+from pyzx_param.graph import Graph
+from pyzx_param.utils import EdgeType, VertexType
+from pyzx_param.quimb import to_quimb_tensor
+from pyzx_param.simplify import full_reduce
 
 np: Optional[ModuleType]
 try:
     import numpy as np
-    from pyzx.tensor import tensorfy, compare_tensors
+    from pyzx_param.tensor import tensorfy, compare_tensors
 except ImportError:
     np = None
 

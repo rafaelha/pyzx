@@ -3,7 +3,7 @@ import numpy as np
 from enum import Enum
 from typing import List, Optional, Tuple
 
-from pyzx.circuit import Circuit
+from pyzx_param.circuit import Circuit
 
 from ..linalg import Mat2
 from .architecture import (

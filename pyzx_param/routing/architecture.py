@@ -21,11 +21,11 @@ import sys
 from typing import Any, Dict, Iterator, List, Set, Tuple, Optional, Union
 from typing_extensions import Literal
 
-from pyzx.graph.base import BaseGraph
+from pyzx_param.graph.base import BaseGraph
 if __name__ == '__main__':
     sys.path.append('..')
 from ..graph.graph import Graph
-#from pyzx.graph.base import BaseGraph # TODO fix the right graph import - one of many - right backend etc
+#from pyzx_param.graph.base import BaseGraph # TODO fix the right graph import - one of many - right backend etc
 
 import numpy as np
 

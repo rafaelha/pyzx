@@ -30,7 +30,7 @@ jobs:
         if [ -f test_requirements.txt ]; then pip install -r test_requirements.txt; fi
     - name: mypy
       run: |
-        mypy pyzx/ tests/
+        mypy pyzx_param/ tests/
     - name: Test with unittest
       run: |
         python -m unittest discover -s "tests" -t "." --verbose

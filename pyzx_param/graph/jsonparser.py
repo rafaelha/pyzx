@@ -22,7 +22,7 @@ import ast
 from fractions import Fraction
 from typing import List, Dict, Tuple, Any, Optional, Callable, Union, TYPE_CHECKING
 
-from pyzx.graph.multigraph import Multigraph
+from pyzx_param.graph.multigraph import Multigraph
 
 from ..utils import FractionLike, EdgeType, VertexType, phase_to_s
 from .graph import Graph

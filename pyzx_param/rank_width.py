@@ -20,7 +20,7 @@
 # Additionally, several heuristics were implemented for finding good rank-decompositions.
 
 import numpy as np
-import pyzx as zx
+import pyzx_param as zx
 from copy import deepcopy
 from itertools import product
 from typing import Tuple, List, Iterable

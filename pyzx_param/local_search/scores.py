@@ -22,9 +22,9 @@ This module contains objective functions to guide local search over ZX-diagrams.
 import sys
 if __name__ == '__main__':
     sys.path.append('..')
-from pyzx.extract import extract_circuit
-from pyzx.simplify import full_reduce
-from pyzx.optimize import basic_optimization
+from pyzx_param.extract import extract_circuit
+from pyzx_param.simplify import full_reduce
+from pyzx_param.optimize import basic_optimization
 
 # Weighted gate count
 def wgc(c, two_qb_weight=10):

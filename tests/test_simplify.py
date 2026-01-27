@@ -21,25 +21,25 @@ import sys
 from types import ModuleType
 from typing import Optional
 
-from pyzx import VertexType, EdgeType
+from pyzx_param import VertexType, EdgeType
 
 if __name__ == '__main__':
     sys.path.append('..')
     sys.path.append('.')
-from pyzx.graph import Graph
-from pyzx.circuit import Circuit
-from pyzx.circuit.qasmparser import qasm
+from pyzx_param.graph import Graph
+from pyzx_param.circuit import Circuit
+from pyzx_param.circuit.qasmparser import qasm
 from fractions import Fraction
-from pyzx.generate import cliffordT
-from pyzx.simplify import *
-from pyzx.simplify import supplementarity_simp, to_clifford_normal_form_graph, copy_simp
-from pyzx import compare_tensors
-from pyzx.generate import cliffordT
+from pyzx_param.generate import cliffordT
+from pyzx_param.simplify import *
+from pyzx_param.simplify import supplementarity_simp, to_clifford_normal_form_graph, copy_simp
+from pyzx_param import compare_tensors
+from pyzx_param.generate import cliffordT
 
 np: Optional[ModuleType]
 try:
     import numpy as np
-    from pyzx.tensor import tensorfy, compare_tensors
+    from pyzx_param.tensor import tensorfy, compare_tensors
 except ImportError:
     np = None
 
@@ -136,7 +136,7 @@ class TestSimplify(unittest.TestCase):
         """Test that checks whether a scalar is correctly removed from a graph using full_reduce.
         """
 
-        from pyzx import Graph, full_reduce 
+        from pyzx_param import Graph, full_reduce 
         g = Graph()
         g.add_vertex(ty=1, phase=0.5)
         g.add_vertex(ty=1, phase=1)

@@ -25,17 +25,17 @@ from fractions import Fraction
 if __name__ == '__main__':
     sys.path.append('..')
     sys.path.append('.')
-from pyzx.circuit import Circuit
-from pyzx.circuit.gates import CNOT
-from pyzx.generate import cliffordT
-from pyzx.simplify import clifford_simp
-from pyzx.extract import extract_circuit
-from pyzx import simplify
+from pyzx_param.circuit import Circuit
+from pyzx_param.circuit.gates import CNOT
+from pyzx_param.generate import cliffordT
+from pyzx_param.simplify import clifford_simp
+from pyzx_param.extract import extract_circuit
+from pyzx_param import simplify
 
 np: Optional[ModuleType]
 try:
     import numpy as np
-    from pyzx.tensor import tensorfy, compare_tensors
+    from pyzx_param.tensor import tensorfy, compare_tensors
 except ImportError:
     np = None
 

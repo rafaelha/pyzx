@@ -24,10 +24,10 @@ from fractions import Fraction
 
 from typing import Callable, Optional, List, Dict, Tuple
 
-from pyzx.utils import EdgeType, VertexType, FractionLike, toggle_edge, vertex_is_zx, toggle_vertex
-from pyzx.graph.base import BaseGraph, VT, ET, upair
-import pyzx.rewrite_rules.rules as rules
-import pyzx.rewrite_rules.hrules as hrules
+from pyzx_param.utils import EdgeType, VertexType, FractionLike, toggle_edge, vertex_is_zx, toggle_vertex
+from pyzx_param.graph.base import BaseGraph, VT, ET, upair
+import pyzx_param.rewrite_rules.rules as rules
+import pyzx_param.rewrite_rules.hrules as hrules
 
 
 def match_X_spiders(

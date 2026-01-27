@@ -22,8 +22,8 @@ import time
 import argparse
 from typing import Any, Dict, Iterable, List, Union
 
-from pyzx.routing.cnot_mapper import ElimMode, gauss, genetic_elim_modes, basic_elim_modes, pso_elim_modes, sequential_gauss, elim_modes
-from pyzx.routing.parity_maps import CNOT_tracker
+from pyzx_param.routing.cnot_mapper import ElimMode, gauss, genetic_elim_modes, basic_elim_modes, pso_elim_modes, sequential_gauss, elim_modes
+from pyzx_param.routing.parity_maps import CNOT_tracker
 
 try:
     from pandas import DataFrame
@@ -405,7 +405,7 @@ def route_circuit(
         ]
     )
     if mode == CompileMode.QUIL_COMPILER:
-        from pyzx.pyquil_circuit import PyQuilCircuit
+        from pyzx_param.pyquil_circuit import PyQuilCircuit
 
         compiled_circuit = PyQuilCircuit.from_circuit(
             c, architecture
@@ -826,7 +826,7 @@ def batch_route_circuits(
 def count_cnots_circuit(mode, circuit, n_compile=1, store_circuit_as=None):
     count = -1
     if mode == CompileMode.QUIL_COMPILER:
-        from pyzx.pyquil_circuit import PyQuilCircuit
+        from pyzx_param.pyquil_circuit import PyQuilCircuit
 
         if isinstance(circuit, PyQuilCircuit):
             count = (
@@ -1092,7 +1092,7 @@ def map_cnot_circuit(
             **kwargs,
         )
     elif mode == CompileMode.QUIL_COMPILER:
-        from pyzx.pyquil_circuit import PyQuilCircuit
+        from pyzx_param.pyquil_circuit import PyQuilCircuit
 
         compiled_circuit = PyQuilCircuit.from_CNOT_tracker(circuit, architecture)
         compiled_circuit.compile()

@@ -24,15 +24,15 @@ from typing import Optional
 if __name__ == '__main__':
     sys.path.append('..')
     sys.path.append('.')
-from pyzx.simplify import full_reduce
-from pyzx.extract import extract_circuit
-from pyzx.circuit import Circuit
+from pyzx_param.simplify import full_reduce
+from pyzx_param.extract import extract_circuit
+from pyzx_param.circuit import Circuit
 from fractions import Fraction
 
 np: Optional[ModuleType]
 try:
     import numpy as np
-    from pyzx.tensor import compare_tensors
+    from pyzx_param.tensor import compare_tensors
     import math
 except ImportError:
     np = None
@@ -50,7 +50,7 @@ except ImportError:
 class TestQASM(unittest.TestCase):
 
     def test_parser_state_reset(self):
-        from pyzx.circuit.qasmparser import QASMParser
+        from pyzx_param.circuit.qasmparser import QASMParser
         s = """
         OPENQASM 2.0;
         include "qelib1.inc";
@@ -203,7 +203,7 @@ class TestQASM(unittest.TestCase):
             before.to_matrix(), after.to_matrix(), True))
 
     def test_custom_gates(self):
-        from pyzx.circuit.qasmparser import QASMParser
+        from pyzx_param.circuit.qasmparser import QASMParser
         s1 = """
         OPENQASM 2.0;
         include "qelib1.inc";

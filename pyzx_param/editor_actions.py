@@ -24,8 +24,8 @@ from typing import Callable, Optional, List, Dict, Tuple
 from .utils import EdgeType, VertexType, FractionLike
 from .utils import toggle_edge, vertex_is_zx, toggle_vertex
 from .graph.base import BaseGraph, VT, ET, upair
-import pyzx.rewrite_rules.rules as rules
-import pyzx.rewrite_rules.hrules as hrules
+import pyzx_param.rewrite_rules.rules as rules
+import pyzx_param.rewrite_rules.hrules as hrules
 
 
 def match_X_spiders(

@@ -25,7 +25,7 @@ from .scores import g_wgc
 import sys
 if __name__ == '__main__':
     sys.path.append('..')
-from pyzx.simplify import full_reduce
+from pyzx_param.simplify import full_reduce
 
 
 """
