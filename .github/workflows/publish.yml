@@ -1,4 +1,4 @@
-# Publish to TestPyPI (and later PyPI) when a release is created
+# Publish to PyPI when a release is created
 # For more info: https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
 
 name: Publish to PyPI
@@ -31,15 +31,15 @@ jobs:
           name: python-package-distributions
           path: dist/
 
-  publish-to-testpypi:
-    name: Publish to TestPyPI
+  publish-to-pypi:
+    name: Publish to PyPI
     needs: build
     runs-on: ubuntu-latest
     environment:
-      name: testpypi
-      url: https://test.pypi.org/p/pyzx-param
+      name: pypi
+      url: https://pypi.org/p/pyzx-param
     permissions:
-      id-token: write  # Required for trusted publishing
+      id-token: write
 
     steps:
       - name: Download distribution artifacts
@@ -48,28 +48,5 @@ jobs:
           name: python-package-distributions
           path: dist/
       
-      - name: Publish to TestPyPI
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
-
-  # Uncomment this job when you're ready to publish to real PyPI
-  # publish-to-pypi:
-  #   name: Publish to PyPI
-  #   needs: build
-  #   runs-on: ubuntu-latest
-  #   environment:
-  #     name: pypi
-  #     url: https://pypi.org/p/pyzx-param
-  #   permissions:
-  #     id-token: write
-  #
-  #   steps:
-  #     - name: Download distribution artifacts
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         name: python-package-distributions
-  #         path: dist/
-  #     
-  #     - name: Publish to PyPI
-  #       uses: pypa/gh-action-pypi-publish@release/v1

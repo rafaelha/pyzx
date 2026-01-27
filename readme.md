@@ -1,8 +1,8 @@
-## PyZX
+## PyZX-Param
 
-[![Unitary Fund](https://img.shields.io/badge/Supported%20By-UNITARY%20FUND-brightgreen.svg?style=for-the-badge)](http://unitary.fund)
-[![CQC Support](https://github.com/zxcalc/pyzx/raw/master/images/cqc-banner-small.png)](https://cambridgequantum.com/)
-[![PyPI version](https://badge.fury.io/py/pyzx.svg)](https://badge.fury.io/py/pyzx)
+[![PyPI version](https://badge.fury.io/py/pyzx-param.svg)](https://badge.fury.io/py/pyzx-param)
+
+> **Note:** This is a fork of [PyZX](https://github.com/zxcalc/pyzx) with extensions for parameterized Pauli vertices, based on [mjsutcliffe99/ParamZX](https://github.com/mjsutcliffe99/ParamZX). It can be installed alongside the original PyZX without conflicts.
 
 PyZX (pronounce as *Pisics*) is a **Py**thon tool implementing the theory of **ZX**-calculus for the creation, visualisation, and automated rewriting of large-scale quantum circuits. Please watch [this 2-minute video](https://www.youtube.com/watch?v=iC-KVdB8pf0) for a short introduction.
 
@@ -26,14 +26,20 @@ The ZX-calculus is a set of rewrite rules for ZX-diagrams. There are various ext
 
 ## Installation
 
-If you wish to use PyZX as a Python module for use in other projects, we recommend installing via pip:
+If you wish to use PyZX-Param as a Python module for use in other projects, we recommend installing via pip:
 ```
-    pip install pyzx
+pip install pyzx-param
 ```
 
-If you want to use the demos or the benchmark circuits you should install PyZX from source by cloning the git repository.
+This installs the module as `pyzx_param`, allowing it to coexist with the original `pyzx`:
+```python
+import pyzx_param as zx  # This fork
+import pyzx              # Original PyZX (if needed)
+```
 
-PyZX has no strict dependencies, although some functionality requires numpy. PyZX is built to interact well with Jupyter, so we additionally recommend you have Jupyter and matplotlib installed.
+If you want to use the demos or the benchmark circuits you should install PyZX-Param from source by cloning the git repository.
+
+PyZX-Param has no strict dependencies, although some functionality requires numpy. It is built to interact well with Jupyter, so we additionally recommend you have Jupyter and matplotlib installed.
 
 ## Usage
 
@@ -44,7 +50,7 @@ If you have [Jupyter](https://jupyter.org/) installed you can use one of the dem
 This is some example Python code for generating a random circuit, optimizing it, and finally displaying it:
 
 ```python
-import pyzx as zx
+import pyzx_param as zx
 qubit_amount = 5
 gate_count = 80
 #Generate random circuit of Clifford gates
@@ -57,12 +63,12 @@ zx.simplify.full_reduce(circuit)
 zx.draw(circuit)
 ```
 
-PyZX can also be run from the commandline. To optimise a circuit you can for instance run
-```python -m pyzx opt input_circuit.qasm```
+PyZX-Param can also be run from the commandline. To optimise a circuit you can for instance run
+```python -m pyzx_param opt input_circuit.qasm```
 
 ## Attribution
 
-If you wish to cite PyZX in an academic work, please cite the [accompanying paper](https://arxiv.org/abs/1904.04735):
+This is a fork of [PyZX](https://github.com/zxcalc/pyzx) by Aleks Kissinger and John van de Wetering. If you wish to cite PyZX in an academic work, please cite the [original paper](https://arxiv.org/abs/1904.04735):
 <pre>
   @inproceedings{kissinger2020Pyzx,
     author = {Kissinger, Aleks and van de Wetering, John},
