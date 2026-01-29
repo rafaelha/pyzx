@@ -16,7 +16,6 @@
 
 import math
 import numpy as np
-from galois import GF2
 from typing import Union, Any, Tuple, List, Optional, Dict, cast
 from typing_extensions import Literal
 
@@ -481,5 +480,7 @@ def generalized_inverse(A: np.ndarray) -> np.ndarray:
     :param A: binary matrix of shape (n, m)
     :return A^g: binary matrix of shape (m, n) - a matrix satisfying A * A^g * A = A
     """
+    from galois import GF2
+
     r, U, V = rank_factorize(A)
     return (np.linalg.inv(GF2(V))[:, :r] @ np.linalg.inv(GF2(U))[:r]) == 1

@@ -10,7 +10,7 @@ setup(
     name="pyzx-param",
     author="Quantomatic",
     author_email="john@vdwetering.name",
-    version="0.9.1",
+    version="0.9.2",
     url="https://github.com/rafaelha/pyzx.git",
     description="Library for quantum circuit rewriting and optimisation using the ZX-calculus",
     long_description=README,
@@ -40,6 +40,7 @@ setup(
                       "numpy>=1.14",
                       "pyperclip>=1.8.1",
                       "tqdm>=4.56.0",
+                      "sympy>=1.9.0",
                       "lark>=1.2.2"],
     include_package_data=True,
 )
