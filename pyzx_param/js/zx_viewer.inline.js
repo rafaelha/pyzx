@@ -202,7 +202,7 @@ function showGraph(tag, graph, width, height, scale, node_size, auto_hbox, show_
         .attr("stroke", "black")
         .attr("class", "selectable");
 
-    node.filter(function(d) { return d.phase != ''; })
+    node.filter(function(d) { return d.phase != '' && d.phase.indexOf('[') === -1; })
         .append("text")
         .attr("y", 0.7 * node_size + 14)
         .text(function (d) { return d.phase })
@@ -210,6 +210,16 @@ function showGraph(tag, graph, width, height, scale, node_size, auto_hbox, show_
         .attr("font-size", "12px")
         .attr("font-family", "monospace")
         .attr("fill", "#00d")
+        .attr('style', 'pointer-events: none; user-select: none;');
+
+    node.filter(function(d) { return d.phase != '' && d.phase.indexOf('[') !== -1; })
+        .append("text")
+        .attr("y", -0.7 * node_size - 8)
+        .text(function (d) { return d.phase })
+        .attr("text-anchor", "middle")
+        .attr("font-size", "12px")
+        .attr("font-family", "monospace")
+        .attr("fill", "black")
         .attr('style', 'pointer-events: none; user-select: none;');
 
     if (show_labels) {

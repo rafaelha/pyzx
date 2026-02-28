@@ -267,7 +267,10 @@ def draw_matplotlib(
             ax.add_patch(patches.Circle(p, 0.1, facecolor='black', edgecolor='black', zorder=1))
 
         if labels: plt.text(p[0]+0.25, p[1]+0.25, str(v), ha='center', color='gray', fontsize=5)
-        if phase_str: plt.text(p[0], p[1]-a_offset, phase_str, ha='center', color='blue', fontsize=8)
+        if phase_str and '[' in phase_str:
+            plt.text(p[0], p[1]+a_offset, phase_str, ha='center', color='black', fontsize=8)
+        elif phase_str:
+            plt.text(p[0], p[1]-a_offset, phase_str, ha='center', color='blue', fontsize=8)
 
     if show_scalar:
         x = min((g.row(v) for v in g.vertices()), default = 0)
