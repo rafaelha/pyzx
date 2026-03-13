@@ -26,14 +26,28 @@ The ZX-calculus is a set of rewrite rules for ZX-diagrams. There are various ext
 
 ## Installation
 
-If you wish to use PyZX as a Python module for use in other projects, we recommend installing via pip:
+To use PyZX as a library:
 ```
-    pip install pyzx
+pip install pyzx
 ```
 
-If you want to use the demos or the benchmark circuits you should install PyZX from source by cloning the git repository.
+### Development setup
 
-PyZX has no strict dependencies, although some functionality requires numpy. PyZX is built to interact well with Jupyter, so we additionally recommend you have Jupyter and matplotlib installed.
+Clone the repository and install all dependencies with [uv](https://docs.astral.sh/uv/):
+```
+git clone https://github.com/zxcalc/pyzx.git
+cd pyzx
+uv sync --all-groups
+```
+
+A `justfile` provides common workflow shortcuts:
+```
+just test          # run all tests
+just test-one FILE # run a single test file (e.g., just test-one test_graph)
+just typecheck     # run mypy
+just docs          # build HTML documentation
+just notebook      # launch Jupyter
+```
 
 ## Usage
 
