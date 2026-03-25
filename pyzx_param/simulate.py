@@ -25,7 +25,7 @@ import math
 sq2 = math.sqrt(2)
 omega = (1+1j)/sq2
 from fractions import Fraction
-from typing import List, Optional, Dict, Tuple, Any
+from typing import List, Literal, Optional, Dict, Tuple, Any
 
 import numpy as np
 
@@ -35,6 +35,7 @@ from .circuit import Circuit
 from .graph.base import BaseGraph,VT,ET
 from .graph.scalar import DyadicNumber
 from .symbolic import Poly
+from .graph import Graph
 
 MAGIC_GLOBAL = DyadicNumber(k=2, a=-7, b=0, c=7, d=-10)
 MAGIC_B60 = DyadicNumber(k=-2, a=-4, b=3, c=0, d=3)
@@ -43,6 +44,8 @@ MAGIC_E6 = DyadicNumber(k=0, a=10, b=-7, c=0, d=-7)
 MAGIC_O6 = DyadicNumber(k=-1, a=-7, b=5, c=0, d=5)
 MAGIC_K6 = DyadicNumber(k=0, a=7, b=-5, c=0, d=-5)
 MAGIC_PHI = DyadicNumber(k=0, a=10, b=-7, c=0, d=-7)
+
+DecompositionStrategy = Literal["cat5", "bss", "cutting"]
 
 class SumGraph(object):
     """Container class for a sum of ZX-diagrams"""
@@ -318,7 +321,7 @@ def max_terms_needed(g: BaseGraph[VT,ET]) -> int:
     return count
 
 
-def replace_magic_states(g: BaseGraph[VT,ET], pick_random:Any=False) -> SumGraph:
+def replace_magic_states(g: BaseGraph[VT,ET], pick_random:Any=False, strategy: Literal["cat5", "bss", "cutting"] = "cat5") -> SumGraph:
     """This function takes in a ZX-diagram in graph-like form 
     (all spiders fused, only Z spiders, only H-edges between spiders),
     and splits it into a sum over smaller diagrams by using the magic
@@ -352,10 +355,16 @@ def replace_magic_states(g: BaseGraph[VT,ET], pick_random:Any=False) -> SumGraph
         ranking[v] = deg
         ### ... end AK changes
 
-    if len(ranking) >= 6: num_replace = 6
-    elif len(ranking) >= 2: num_replace = 2
-    elif len(ranking) == 1: num_replace = 1
-    else: raise Exception("No magic states to replace")
+    if len(ranking) >= 6 and strategy == "bss":
+        num_replace = 6
+    elif len(ranking) >= 5 and strategy != "cutting":
+        num_replace = 5
+    elif len(ranking) >= 2 and strategy != "cutting":
+        num_replace = 2
+    elif len(ranking) >= 1:
+        num_replace = 1
+    else:
+        raise Exception("No magic states to replace")
 
     if not pick_random:
         candidates = sorted(ranking.keys(), key=lambda v: ranking[v], reverse=True)[:num_replace]
@@ -367,6 +376,8 @@ def replace_magic_states(g: BaseGraph[VT,ET], pick_random:Any=False) -> SumGraph
     graphs = []
     if num_replace == 6:
         replace_functions = [replace_B60, replace_B66, replace_E6, replace_O6, replace_K6, replace_phi1, replace_phi2]
+    elif num_replace == 5:
+        replace_functions = [replace_5_ghz_arbitrary_rotation, replace_5_e_arbitrary_rotation, replace_5_k_arbitrary_rotation]
     elif num_replace == 2:
         replace_functions = [replace_2_S, replace_2_N]
     else:
@@ -753,6 +764,7 @@ def apply_cat3(g: BaseGraph[VT, ET], vertex: VT) -> SumGraph:
     # Remove the decomposed vertices from the terms
     g_A.remove_vertex(vertex)
     g_B.remove_vertex(vertex)
+    # g_A.add_sc
 
     return SumGraph([g_A, g_B])
 
@@ -915,35 +927,21 @@ def replace_2_01_arbitrary_rotation(
     return g
 
 
-def replace_5_0_arbitrary_rotation(
+
+
+def replace_5_ghz_arbitrary_rotation(
     g: BaseGraph[VT, ET], verts: List[VT]
 ) -> BaseGraph[VT, ET]:
     theta = g.phase(verts[0]) % Fraction(1, 2)
+    v1 = g.add_vertex(VertexType.Z, g.qubit(verts[0]) - 0.5, g.row(verts[0]) - 0.5, phase=theta + Fraction(1))
     for v in verts:
         g.add_to_phase(v, -theta)
-        v_ = g.add_vertex(VertexType.Z, g.qubit(v) - 0.5, g.row(v) - 0.5)
-        g.add_edge(g.edge(v_, v), EdgeType.HADAMARD)
-
-    g.scalar.approximate_floatfactor *= 1 - np.exp(1j * 4 * theta * np.pi)
-    g.scalar.add_power(-5)
-    return g
-
-
-def replace_5_1_arbitrary_rotation(
-    g: BaseGraph[VT, ET], verts: List[VT]
-) -> BaseGraph[VT, ET]:
-    theta = g.phase(verts[0]) % Fraction(1, 2)
-    for v in verts:
-        g.add_to_phase(v, -theta)
-        v_ = g.add_vertex(
-            VertexType.Z, g.qubit(v) - 0.5, g.row(v) - 0.5, phase=Fraction(1, 1)
-        )
-        g.add_edge(g.edge(v_, v), EdgeType.HADAMARD)
-
-    g.scalar.approximate_floatfactor *= (
-        np.exp(1j * 6 * theta * np.pi) - np.exp(1j * 2 * theta * np.pi)
-    ) * np.exp(-1j * theta * np.pi)
-    g.scalar.add_power(-5)
+        g.add_edge(g.edge(v, v1), EdgeType.SIMPLE)
+    if theta.denominator == 4:
+        assert theta.numerator == 1
+        g.scalar.add_power(2)
+    else:
+        g.scalar.approximate_floatfactor *= 1 - np.exp(1j * 4 * theta * np.pi)
     return g
 
 
@@ -959,10 +957,15 @@ def replace_5_e_arbitrary_rotation(
     for v in verts:
         g.add_to_phase(v, -theta)
         g.add_edge(g.edge(v, v1), EdgeType.HADAMARD)
-    g.scalar.approximate_floatfactor *= np.exp(1j * 3 * theta * np.pi) * np.cos(
-        theta * np.pi
-    )
-    g.scalar.add_power(4)
+    if theta.denominator == 4:
+        assert theta.numerator == 1
+        g.scalar.add_phase(Fraction(3,4))
+        g.scalar.add_power(3)
+    else:
+        g.scalar.approximate_floatfactor *= np.exp(1j * 3 * theta * np.pi) * np.cos(
+            theta * np.pi
+        )
+        g.scalar.add_power(4)
     return g
 
 
@@ -981,14 +984,19 @@ def replace_5_k_arbitrary_rotation(
     for v in verts:
         g.add_to_phase(v, Fraction(1, 2) - theta)
         g.add_edge(g.edge(v, v1), EdgeType.HADAMARD)
-    g.scalar.approximate_floatfactor *= (
-        np.exp(1j * 3 * theta * np.pi) * 1j * np.sin(theta * np.pi)
-    )
-    g.scalar.add_power(4)
+    if theta.denominator == 4:
+        assert theta.numerator == 1
+        g.scalar.add_phase(Fraction(-3,4))
+        g.scalar.add_power(3)
+    else:
+        g.scalar.approximate_floatfactor *= (
+            np.exp(1j * 3 * theta * np.pi) * 1j * np.sin(theta * np.pi)
+        )
+        g.scalar.add_power(4)
     return g
 
 
-def replace_u3_states(g: BaseGraph[VT, ET], pick_random: Any = False) -> SumGraph:
+def replace_u3_states(g: BaseGraph[VT, ET], pick_random: Any = False, strategy: Literal["cat5", "bss", "cutting"] = "cat5") -> SumGraph:
     """This function takes in a ZX-diagram in graph-like form
     (all spiders fused, only Z spiders, only H-edges between spiders),
     and splits it into a sum over smaller diagrams by using the magic
@@ -1018,15 +1026,14 @@ def replace_u3_states(g: BaseGraph[VT, ET], pick_random: Any = False) -> SumGrap
             conjugate_phase_pair = [phases[p][0], phases[p_conj][0]]
             break
 
-    if len(vs) >= 5:
+    if len(vs) >= 5 and strategy != "cutting":
         candidates = vs[:5]
         replace_functions = [
-            replace_5_0_arbitrary_rotation,
-            replace_5_1_arbitrary_rotation,
+            replace_5_ghz_arbitrary_rotation,
             replace_5_e_arbitrary_rotation,
             replace_5_k_arbitrary_rotation,
         ]
-    elif conjugate_phase_pair:
+    elif conjugate_phase_pair and strategy != "cutting":
         candidates = conjugate_phase_pair
         replace_functions = [
             replace_2_bell_arbitrary_rotation,
