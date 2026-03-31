@@ -79,6 +79,12 @@ export function showGraph3D(tag, graph, width, height, show_labels) {
         } else if (d.t == 2) {
             color = Number('0x' + '#ff8888'.substring(1));
             radius = 0.1;
+        } else if (d.t == 7) {
+            color = Number('0x' + '#99dd99'.substring(1));
+            radius = 0.12;
+        } else if (d.t == 8) {
+            color = Number('0x' + '#ff8888'.substring(1));
+            radius = 0.12;
         }
 
         const geometry = new THREE.SphereGeometry(radius, 48, 24);
@@ -117,11 +123,17 @@ export function showGraph3D(tag, graph, width, height, show_labels) {
         s.nhd.push(t);
         t.nhd.push(s);
         let color = 0x000000;
+        let lw = 2;
         if (d.t == 2) {
             color = 0xffff66;
+        } else if (d.t == 4) {
+            lw = 5;
+        } else if (d.t == 5) {
+            color = 0xffff66;
+            lw = 5;
         }
 
-        const material = new LineMaterial({ color: color, linewidth: 2, transparent: true });
+        const material = new LineMaterial({ color: color, linewidth: lw, transparent: true });
         if (s.x != t.x) { material.opacity = 0.5; }
         const geometry = new LineGeometry().setFromPoints([
             new THREE.Vector3(s.x, s.y, s.z),

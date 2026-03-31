@@ -205,26 +205,27 @@ def draw_matplotlib(
         dx = tp[0] - sp[0]
         dy = tp[1] - sp[1]
         bend_wire = (dx == 0) and h_edge_draw == 'blue' and n_row > 2
-        if et == 2 and h_edge_draw == 'blue':
+        if (et == EdgeType.HADAMARD or et == EdgeType.HADAMARD_BOLD) and h_edge_draw == 'blue':
             ecol = '#0099ff'
-        elif et == 3:
+        elif et == EdgeType.W_IO:
             ecol = 'gray'
         else:
             ecol = 'black'
+        ewidth = 2.5 if et in (EdgeType.BOLD, EdgeType.HADAMARD_BOLD) else 0.8
 
         if bend_wire:
             bend = 0.25
             mid = (sp[0] + 0.5 * dx + bend * dy, sp[1] + 0.5 * dy - bend * dx)
 
             pth = path.Path([sp,mid,tp], [path.Path.MOVETO, path.Path.CURVE3, path.Path.LINETO])
-            patch = patches.PathPatch(pth, edgecolor=ecol, linewidth=0.8, fill=False)
+            patch = patches.PathPatch(pth, edgecolor=ecol, linewidth=ewidth, fill=False)
             ax.add_patch(patch)
         else:
             pos = 0.5 if dx == 0 or dy == 0 else 0.4
             mid = (sp[0] + pos*dx, sp[1] + pos*dy)
-            ax.add_line(lines.Line2D([sp[0],tp[0]],[sp[1],tp[1]], color=ecol, linewidth=0.8, zorder=0))
+            ax.add_line(lines.Line2D([sp[0],tp[0]],[sp[1],tp[1]], color=ecol, linewidth=ewidth, zorder=0))
 
-        if h_edge_draw == 'box' and et == 2: #hadamard edge
+        if h_edge_draw == 'box' and et in (EdgeType.HADAMARD, EdgeType.HADAMARD_BOLD):
             w = 0.2
             h = 0.15
             diag = math.sqrt(w*w+h*h)
@@ -258,11 +259,18 @@ def draw_matplotlib(
             ax.add_patch(patches.Rectangle((p[0]-0.1, p[1]-0.1), 0.2, 0.2, facecolor='#ccffcc', edgecolor='black'))
             a_offset = 0.25
             phase_str = str(get_z_box_label(g, v))
+        elif t == VertexType.Z_BOLD:
+            ax.add_patch(patches.Circle(p, 0.2, facecolor='#ccffcc', edgecolor='black', linewidth=2.5, zorder=1))
+        elif t == VertexType.X_BOLD:
+            ax.add_patch(patches.Circle(p, 0.2, facecolor='#ff8888', edgecolor='black', linewidth=2.5, zorder=1))
         else:
             ax.add_patch(patches.Circle(p, 0.1, facecolor='black', edgecolor='black', zorder=1))
 
         if labels: plt.text(p[0]+0.25, p[1]+0.25, str(v), ha='center', color='gray', fontsize=5)
-        if phase_str: plt.text(p[0], p[1]-a_offset, phase_str, ha='center', color='blue', fontsize=8)
+        if phase_str and '[' in phase_str:
+            plt.text(p[0], p[1]+a_offset, phase_str, ha='center', color='black', fontsize=8)
+        elif phase_str:
+            plt.text(p[0], p[1]-a_offset, phase_str, ha='center', color='blue', fontsize=8)
 
     if show_scalar:
         x = min((g.row(v) for v in g.vertices()), default = 0)

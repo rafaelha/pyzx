@@ -23,12 +23,20 @@ function nodeColor(t) {
     else if (t == 4) return _settings_colors['W']; // "black";
     else if (t == 5) return _settings_colors['Walt']; // "black";
     else if (t == 6) return _settings_colors['Zalt']; // "#ccffcc";
+    else if (t == 7) return _settings_colors['Zbold']; // "#ccffcc" bold Z
+    else if (t == 8) return _settings_colors['Xbold']; // "#ff8888" bold X
 }
 
 function edgeColor(t) {
     if (t == 1) return _settings_colors['edge']; //"black";
     else if (t == 2) return _settings_colors['Hedge']; // "#08f";
     else if (t == 3) return _settings_colors['Xedge']; // "gray";
+    else if (t == 4) return _settings_colors['Bedge']; // "black" bold
+    else if (t == 5) return _settings_colors['HBedge']; // "#0088ff" bold hadamard
+}
+
+function isBoldEdge(t) {
+    return t == 4 || t == 5;
 }
 
 function webColor(t) {
@@ -38,8 +46,10 @@ function webColor(t) {
     else if (t == 'I') return '#dddddd';
 }
 
-function nodeStyle(selected) {
-    return selected ? "stroke-width: 2px; stroke: #00f" : "stroke-width: 1.5px";
+function nodeStyle(selected, t) {
+    var bold = (t == 7 || t == 8);
+    if (selected) return "stroke-width: " + (bold ? "4" : "2") + "px; stroke: #00f";
+    return "stroke-width: " + (bold ? "3" : "1.5") + "px";
 }
 
 var symbolGround = {
@@ -122,7 +132,7 @@ function showGraph(tag, graph, width, height, scale, node_size, auto_hbox, show_
         .enter().append("path")
         .attr("stroke", function(d) { return edgeColor(d.t); })
         .attr("fill", "transparent")
-        .attr("style", "stroke-width: 1.5px");
+        .attr("style", function(d) { return isBoldEdge(d.t) ? "stroke-width: 3.5px" : "stroke-width: 1.5px"; });
 
     var brush = svg.append("g")
         .attr("class", "brush");
@@ -162,6 +172,7 @@ function showGraph(tag, graph, width, height, scale, node_size, auto_hbox, show_
         })
         .attr("fill", function(d) { return nodeColor(d.t); })
         .attr("stroke", "black")
+        .attr("stroke-width", function(d) { return (d.t == 7 || d.t == 8) ? 3 : 1.5; })
         .attr("class", "selectable");
 
     var hbox = node.filter(function(d) { return d.t == 3; });
@@ -191,7 +202,7 @@ function showGraph(tag, graph, width, height, scale, node_size, auto_hbox, show_
         .attr("stroke", "black")
         .attr("class", "selectable");
 
-    node.filter(function(d) { return d.phase != ''; })
+    node.filter(function(d) { return d.phase != '' && d.phase.indexOf('[') === -1; })
         .append("text")
         .attr("y", 0.7 * node_size + 14)
         .text(function (d) { return d.phase })
@@ -199,6 +210,16 @@ function showGraph(tag, graph, width, height, scale, node_size, auto_hbox, show_
         .attr("font-size", "12px")
         .attr("font-family", "monospace")
         .attr("fill", "#00d")
+        .attr('style', 'pointer-events: none; user-select: none;');
+
+    node.filter(function(d) { return d.phase != '' && d.phase.indexOf('[') !== -1; })
+        .append("text")
+        .attr("y", -0.7 * node_size - 8)
+        .text(function (d) { return d.phase })
+        .attr("text-anchor", "middle")
+        .attr("font-size", "12px")
+        .attr("font-family", "monospace")
+        .attr("fill", "black")
         .attr('style', 'pointer-events: none; user-select: none;');
 
     if (show_labels) {
@@ -312,10 +333,10 @@ function showGraph(tag, graph, width, height, scale, node_size, auto_hbox, show_
 
     node.on("mousedown", function(d) {
         if (shiftKey) {
-            d3.select(this).selectAll(".selectable").attr("style", nodeStyle(d.selected = !d.selected));
+            d3.select(this).selectAll(".selectable").attr("style", nodeStyle(d.selected = !d.selected, d.t));
             d3.event.stopImmediatePropagation();
         } else if (!d.selected) {
-            node.selectAll(".selectable").attr("style", function(p) { return nodeStyle(p.selected = d === p); });
+            node.selectAll(".selectable").attr("style", function(p) { return nodeStyle(p.selected = d === p, p.t); });
         }
     })
         .call(d3.drag().on("drag", function(d) {
@@ -347,7 +368,7 @@ function showGraph(tag, graph, width, height, scale, node_size, auto_hbox, show_
                 node.selectAll(".selectable").attr("style", function(d) {
                     return nodeStyle(
                         d.selected = d.previouslySelected = shiftKey &&
-                        d.selected);
+                        d.selected, d.t);
                 });
             }
         })
@@ -358,7 +379,7 @@ function showGraph(tag, graph, width, height, scale, node_size, auto_hbox, show_
                     return nodeStyle(d.selected = d.previouslySelected ^
                         (selection != null
                             && selection[0][0] <= d.x && d.x < selection[1][0]
-                            && selection[0][1] <= d.y && d.y < selection[1][1]));
+                            && selection[0][1] <= d.y && d.y < selection[1][1]), d.t);
                 });
             }
         })

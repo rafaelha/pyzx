@@ -36,14 +36,24 @@ class VertexType(IntEnum):
     W_INPUT = 4
     W_OUTPUT = 5
     Z_BOX = 6
+    Z_BOLD = 7
+    X_BOLD = 8
     DUMMY = 99
 
 def vertex_is_zx(ty: VertexType) -> bool:
     """Check if a vertex type corresponds to a green or red spider."""
     return ty in (VertexType.Z, VertexType.X)
 
+def vertex_is_zx_bold(ty: VertexType) -> bool:
+    """Check if a vertex type corresponds to a bold green or bold red spider."""
+    return ty in (VertexType.Z_BOLD, VertexType.X_BOLD)
+
 def toggle_vertex(ty: VertexType) -> VertexType:
     """Swap the X and Z vertex types."""
+    if ty == VertexType.Z_BOLD:
+        return VertexType.X_BOLD
+    if ty == VertexType.X_BOLD:
+        return VertexType.Z_BOLD
     if not vertex_is_zx(ty):
         return ty
     return VertexType.Z if ty == VertexType.X else VertexType.X
@@ -80,9 +90,15 @@ class EdgeType(IntEnum):
     SIMPLE = 1
     HADAMARD = 2
     W_IO = 3
+    BOLD = 4
+    HADAMARD_BOLD = 5
 
 def toggle_edge(ty: EdgeType) -> EdgeType:
     """Swap the regular and Hadamard edge types."""
+    if ty == EdgeType.BOLD:
+        return EdgeType.HADAMARD_BOLD
+    if ty == EdgeType.HADAMARD_BOLD:
+        return EdgeType.BOLD
     return EdgeType.HADAMARD if ty == EdgeType.SIMPLE else EdgeType.SIMPLE
 
 def phase_to_s(a: FractionLike, t:VertexType=VertexType.Z, poly_with_pi:bool=False) -> str:
@@ -132,19 +148,25 @@ tikz_classes = {
     'Z phase': 'Z phase dot',
     'X phase': 'X phase dot',
     'Z box': 'Z box',
+    'Z bold': 'Z bold dot',
+    'X bold': 'X bold dot',
     'H': 'hadamard',
     'W': 'W triangle',
     'W input': 'W input',
     'dummy': 'text',
     'edge': '',
     'H-edge': 'hadamard edge',
-    'W-io-edge': 'W io edge'
+    'W-io-edge': 'W io edge',
+    'bold-edge': 'bold edge',
+    'H-bold-edge': 'hadamard bold edge'
 }
 
 original_colors = {
     'edge': '#000000',
     'Hedge': '#0088ff',
     'Xedge': '#999999',
+    'Bedge': '#000000',
+    'HBedge': '#0088ff',
     'boundary': '#000000',
     'X': '#ff8888',
     'Y': '#aabbff',
@@ -153,6 +175,8 @@ original_colors = {
     'W': '#000000',
     'Zalt': '#ccffcc',
     'Walt': '#000000',
+    'Zbold': '#ccffcc',
+    'Xbold': '#ff8888',
     'Xdark': '#ff8888',
     'Ydark': '#aabbff',
     'Zdark': '#99dd99',
@@ -164,11 +188,14 @@ rgb_colors['Z'] = original_colors['Y']
 rgb_colors['Ydark'] = original_colors['Zdark']
 rgb_colors['Zdark'] = original_colors['Ydark']
 rgb_colors['Hedge'] = '#ff6600'
+rgb_colors['HBedge'] = '#ff6600'
 
 grayscale_colors = {
     'edge': '#000000',
     'Hedge': '#888888',
     'Xedge': '#dddddd',
+    'Bedge': '#000000',
+    'HBedge': '#888888',
     'boundary': '#000000',
     'X': '#666666',
     'Y': '#9999dd',
@@ -177,6 +204,8 @@ grayscale_colors = {
     'W': '#000000',
     'Zalt': '#dddddd',
     'Walt': '#000000',
+    'Zbold': '#dddddd',
+    'Xbold': '#666666',
     'Xdark': '#666666',
     'Ydark': '#9999dd',
     'Zdark': '#dddddd',
