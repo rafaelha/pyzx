@@ -10,7 +10,7 @@ setup(
     name="pyzx-param",
     author="Quantomatic",
     author_email="john@vdwetering.name",
-    version="0.9.2",
+    version="0.9.3",
     url="https://github.com/rafaelha/pyzx.git",
     description="Library for quantum circuit rewriting and optimisation using the ZX-calculus",
     long_description=README,
