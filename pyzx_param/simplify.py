@@ -245,8 +245,8 @@ def full_reduce(g: BaseGraph[VT,ET], matchf: Optional[Callable[[Union[VT, ET]],b
         i, k, l = 0, 0, 0
         if (not paramSafe): i = gadget_simp(g, matchf=matchf, quiet=quiet, stats=stats)
         interior_clifford_simp(g, matchf=matchf, quiet=quiet, stats=stats)
+        k = copy_simp(g, quiet=quiet, stats=stats)
         if (not paramSafe):
-            k = copy_simp(g, quiet=quiet, stats=stats)
             l = supplementarity_simp(g,quiet=True, stats=stats)
         j = pivot_gadget_simp(g, matchf=matchf, quiet=quiet, stats=stats)
         if i+j+k+l == 0:

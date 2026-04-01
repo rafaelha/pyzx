@@ -1137,14 +1137,15 @@ def match_copy(
     else:
         candidates = g.vertex_set()
     phases = g.phases()
+    phasevars = g._phaseVars
     types = g.types()
     m: List[MatchCopyType[VT]] = []
 
     while len(candidates) > 0:
         v = candidates.pop()
-        if phases[v] not in (0,1) or types[v] != VertexType.Z or g.vertex_degree(v) != 1: continue
+        if phases[v] not in (0,1) or types[v] != VertexType.Z or g.vertex_degree(v) != 1 or len(phasevars[v]) > 0: continue
         w = list(g.neighbors(v))[0]
-        if types[w] != VertexType.Z: continue
+        if types[w] != VertexType.Z or len(phasevars[w]) > 0: continue
         neigh = [n for n in g.neighbors(w) if n != v]
         m.append((v,w,phases[v],phases[w],neigh))
         candidates.discard(w)
