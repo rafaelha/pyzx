@@ -166,7 +166,7 @@ class TestSimulate(unittest.TestCase):
         t1 = g.to_tensor()
 
         gsum = replace_u3_states(g)
-        self.assertTrue(len(gsum.graphs) == 4)
+        self.assertTrue(len(gsum.graphs) == 3)
         t2 = sum([g_.to_tensor() for g_ in gsum.graphs])
 
         self.assertTrue(np.allclose(t1, t2))
